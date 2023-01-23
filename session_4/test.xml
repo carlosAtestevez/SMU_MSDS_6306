@@ -1,0 +1,21 @@
+<xml>
+	<cars>
+		<car>
+			<brand>Toyota</brand>
+			<id>A000001</id>
+			<owner>
+				<name>Carlos Estevez</name>
+				<id>009988</id>
+			</owner>
+		</car>
+		<car>
+			<brand>Honda</brand>
+			<id>A000002</id>
+			<owner>
+				<name>Jose Estevez</name>
+				<id>009989</id>
+			</owner>
+		</car>
+
+	</cars>
+</xml>

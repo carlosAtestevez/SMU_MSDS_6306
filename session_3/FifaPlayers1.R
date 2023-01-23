@@ -56,6 +56,7 @@ sf = sd(df_fpla_lf$Agility)
 n_lm = nrow(df_fpla_lm)
 n_lf = nrow(df_fpla_lf)
 df = n_lm + n_lf - 2
+df
 sp = sqrt(((n_lm-1)*sm^2+(n_lf-1)*sf^2)/df)
 t = (mean_lm-mean_lf)/(sp*(sqrt(1/n_lf+1/n_lm)))
 
@@ -68,7 +69,9 @@ df_fpla_lm %>% ggplot(aes(x=Agility))+geom_histogram()+geom_vline(aes(xintercept
 df_players_1 = df_fplayers
 df_factor = cut(df_players_1$Overall, breaks = c(46,62,75,94), labels = c("Bad","Good","Very Good"))
 df_players_1 = mutate(df_players_1,overall_desc = df_factor)
+df_players_1 %>% select(Vision,ShortPassing,LongPassing,overall_desc) %>% ggpairs(aes(color=overall_desc))
 df_players_1 %>% select(Vision,ShortPassing,LongPassing,overall_desc,Skill.Moves) %>% ggpairs(aes(color=overall_desc))
-#df_fplayers %>% ggplot(aes(x=Overall))+geom_histogram()
-df_players_1 %>% ggplot(aes(x=Skill.Moves))+geom_histogram()
+
+df_fplayers %>% ggplot(aes(x=Overall))+geom_histogram()
+#df_players_1 %>% ggplot(aes(x=Skill.Moves))+geom_histogram()
 
