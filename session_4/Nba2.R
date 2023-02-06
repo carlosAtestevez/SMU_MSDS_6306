@@ -1,6 +1,7 @@
 library(nbastatR)
 library(stringr)
 library(plotly)
+library(GGally)
 
 #Retrieving the list of all players
 assign_nba_players() 
@@ -56,9 +57,14 @@ pl_career_mj_awa_sum %>% ggplot(aes(x=nameAward,y=number_of_awards,fill=Importan
 
 #Getting career stats and Plotting JBJ 
 pl_career_lbj = players_careers(player_ids = c(ply_lbj$idPlayer),modes = c("Totals"))
-pl_career_lbj_rs = filter(pl_career_lbj,nameTable == 'SeasonTotalsRegularSeason')
+#pl_career_lbj_rs = filter(pl_career_lbj,nameTable == 'SeasonTotalsRegularSeason')
+pl_career_lbj_rs = filter(pl_career_lbj,nameTable == 'SeasonTotalsPostSeason')
 pl_total_lbj_rs = pl_career_lbj_rs$dataTable[[1]]
 pl_off_lbj = select(pl_total_lbj_rs,pts,fgm,fg3m,fg2m,ftm)
+pl_off_lbj_pl1 = select(pl_total_lbj_rs,slugSeason,agePlayer,gp,pts,dreb,ast,tov)
+pl_off_lbj_pl1 = mutate(pl_off_lbj_pl1,ptpg=pts/gp,astpg=ast/gp,topg=tov/gp,drebpg=dreb/gp) %>% select(slugSeason,agePlayer,ptpg,astpg,topg,drebpg)
+pl_off_lbj_total_pl1=  gather(pl_off_lbj_pl1,keyfigure, total, agePlayer:drebpg, factor_key=TRUE)
+
 pl_off_lbj_def = select(pl_total_lbj_rs,oreb,dreb,blk)
 pl_off_lbj_avg = select(pl_total_lbj_rs,pctFG,pctFG3)
 pl_off_lbj_total_f1 =  gather(pl_off_lbj,keyfigure, total, pts:ftm, factor_key=TRUE)
@@ -83,9 +89,15 @@ pl_off_lbj_total_def_f1 %>% ggplot(aes(x=keyfigure,y=total,fill=keyfigure))+geom
 
 #Getting career stats and Plotting MJ 
 pl_career_mj = players_careers(player_ids = c(ply_mj$idPlayer),modes = c("Totals"))
-pl_career_mj_rs = filter(pl_career_mj,nameTable == 'SeasonTotalsRegularSeason')
+#pl_career_mj_rs = filter(pl_career_mj,nameTable == 'SeasonTotalsRegularSeason')
+pl_career_mj_rs = filter(pl_career_mj,nameTable == 'SeasonTotalsPostSeason')
+
 pl_total_mj_rs = pl_career_mj_rs$dataTable[[1]]
 pl_off_mj = select(pl_total_mj_rs,pts,fgm,fg3m,fg2m,ftm)
+pl_off_mj_pl1 = select(pl_total_mj_rs,slugSeason,agePlayer,gp,pts,dreb,ast,tov)
+pl_off_mj_pl1 = mutate(pl_off_mj_pl1,ptpg=pts/gp,astpg=ast/gp,topg=tov/gp,drebpg=dreb/gp) %>% select(slugSeason,agePlayer,ptpg,astpg,topg,drebpg)
+pl_off_mj_total_pl1=  gather(pl_off_mj_pl1,keyfigure, total, agePlayer:drebpg, factor_key=TRUE)
+
 pl_off_mj_avg = select(pl_total_mj_rs,pctFG,pctFG3)
 pl_off_mj_def = select(pl_total_mj_rs,oreb,dreb,blk)
 pl_off_mj_total_avg_f1 =  gather(pl_off_mj_avg,keyfigure, total, pctFG:pctFG3, factor_key=TRUE)
@@ -107,4 +119,24 @@ pl_off_mj_total_def_f1 %>% ggplot(aes(x=keyfigure,y=total,fill=keyfigure))+geom_
 
 
 
+#ScatterPlot James
 
+glbj = pl_off_lbj_total_pl1 %>% ggplot(aes(x=slugSeason,y=total,label=keyfigure))+
+  geom_point(aes(color=keyfigure))+geom_line(aes(group = keyfigure), size=0.05)+
+  theme_wsj()+
+  theme(
+    axis.text.x=element_text(angle=60, hjust=1, size=10),
+    )+labs(title="LBJ Career throughout the years")
+
+ggplotly(glbj)
+
+#ScatterPlot MJ
+
+gmj = pl_off_mj_total_pl1 %>% ggplot(aes(x=slugSeason,y=total,label=keyfigure))+
+  geom_point(aes(color=keyfigure))+geom_line(aes(group = keyfigure), size=0.05)+
+  theme_wsj()+
+  theme(
+    axis.text.x=element_text(angle=60, hjust=1, size=10),
+  )+labs(title="MJ Career throughout the years")
+
+ggplotly(gmj)

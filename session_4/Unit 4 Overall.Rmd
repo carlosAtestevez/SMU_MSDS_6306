@@ -182,6 +182,9 @@ who %>%
 # Andrew Carpenter helpful link: http://old.r-fiddle.org/#/fiddle?id=n1shL0IB&version=1
 #Show access through URL: https://api-v2.intrinio.com/companies/AAPL?api_key=OmIxMWI5NWY3MzM0ZjdmN2U3ODJlOTBhNmU3OGQ0Zjlk
 
+#Url https://api-v2.intrinio.com/companies/AAPL?api_key=OmNmNjQ3MWI2OTFhNTk5ZTMwOGYzNjBhNDIyNjE2NWRh
+#key = OjhjZWUxNmFiZjUzZTdkNjUwNDg5ZTJiODNhMWI2MDE1
+
 library(httr)
 library(jsonlite)
 
@@ -251,7 +254,7 @@ DallasTrends[1:10,]
 #https://datahelpdesk.worldbank.org/knowledgebase/articles/898599-indicator-api-queries
 
 #Goal 1: Create a bar chart of topics relating to gdp.
-
+library(WDI)
 #search for reports with "gdp" in the description
 results = as.data.frame(WDIsearch("gdp"))
 

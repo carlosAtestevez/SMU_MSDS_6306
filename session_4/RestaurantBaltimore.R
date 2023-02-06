@@ -33,7 +33,7 @@ sprintf("Suchy Restaurants in Baltimore %i",nr_rest_sushy)
 df_rest_down = filter(df_rest_1,councildistrict == 11)
 
 #Sushy restaurants in downtown
-nr_sushy_down = length(grep("sushi",df_rest_down$name,ignore.case = TRUE))
+nr_sushy_down = length(grep("sushi",c,ignore.case = TRUE))
 sprintf("Suchy Restaurants in Baltimore's downtown %i",nr_sushy_down)
 
 

@@ -7,7 +7,7 @@ library(ggthemes)
 
 #Function to read the players file
 read_file_players=function(){
-  dfl_players = read.csv("C:\\Users\\cestevez\\Desktop\\Data Science Sessions\\6306\\session_2\\R\\PlayersBBall.csv",header = TRUE)
+  dfl_players = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_2\\R\\PlayersBBall.csv",header = TRUE)
   return (dfl_players)  
 }
 #This function is used to convert height to numbers(6-12-->6.42)
