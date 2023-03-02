@@ -270,6 +270,15 @@ confusionMatrix(table(knn.cv(pottery[,1:5],pottery$Site, k = 3), pottery$Site))
 QOI = data.frame(Al = 21, Fe = 6.7, Mg = 4.9, Ca = 0.10, Na = 0.11)
 knn(pottery[,1:5],QOI,pottery$Site, prob = TRUE, k = 3)
 knn(pottery[,1:5],QOI,pottery$Site, prob = TRUE, k = 5)
+
+
+pottery2 = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_6\\potterydata2.csv",header = TRUE)
+pottery2
+knn(pottery2[,1:5],QOI,pottery2$Site, prob = TRUE, k = 3)
+knn(pottery2[,1:5],QOI,pottery2$Site, prob = TRUE, k = 5)
+
+#confusionMatrix(table(knn.cv(pottery2[,1:5],pottery2$Site, k = 3), pottery2$Site))
+
 ```
 
 #For Live Session

@@ -1,0 +1,194 @@
+---
+title: "EDA Analysis Beer Store"
+author: "Carlos Estevez"
+date: "2023-02-17"
+output: 
+      html_document:
+        number_sections: true
+---
+
+```{r Libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(stringr)
+library(caret)
+library(plotly)
+library(ggthemes)
+library(GGally)
+library(class)
+library(e1071)
+```
+
+# Introduction
+
+This analysis is about the number of beers consumed by American People in the United States
+
+###Reading data files
+
+```{r ReadingFiles, warning=FALSE,message=FALSE,include=FALSE}
+
+setwd("C:/Users/cestevez/Dropbox/Cloud PC/Thinkpad/Thinkpad Desktop/Master Data Science SMU/Class_Sessions/Data Science Sessions/Repository/SMU_MSDS_6306")
+
+df_beers = read.csv("session_8/Beers.csv",header = TRUE)
+df_breweries_1 = read.csv("session_8/Breweries.csv",header = TRUE)
+df_states = read.csv("session_8/States.csv",header=TRUE)
+df_breweries_1$State = str_trim(df_breweries_1$State)
+df_breweries_2 = merge(df_breweries_1,df_states,by = "State")
+
+```
+
+### Addressing the missing values in each column
+
+```{r Filtering_Data}
+
+#Cleaning ABV using mean
+df_beers_cl1 = df_beers
+nr_mean_abv = mean(df_beers_cl1[!is.na(df_beers_cl1$ABV),]$ABV)
+length_abv = length(df_beers_cl1[is.na(df_beers_cl1$ABV),]$ABV)
+if(length_abv > 0){
+  df_beers_cl1[is.na(df_beers_cl1$ABV),]$ABV = nr_mean_abv
+}
+
+#Cleaning IBU using mean
+nr_mean_ibu = mean(df_beers_cl1[!is.na(df_beers_cl1$IBU),]$IBU)
+length_ibu = length(df_beers_cl1[is.na(df_beers_cl1$IBU),]$IBU)
+if(length_ibu > 0){
+  df_beers_cl1[is.na(df_beers_cl1$IBU),]$IBU = nr_mean_ibu
+}
+
+
+#Cleaning using KnnInpute
+# preProcValues <- preProcess(df_beers %>% 
+#                           select(ABV,IBU),
+#                             method = c("knnImpute"),
+#                             k = 20,
+#                             knnSummary = mean)
+# df_beers_unp <- predict(preProcValues, df_beers,na.action = na.pass)
+# procNames <- data.frame(col = names(preProcValues$mean), mean = preProcValues$mean, sd = preProcValues$std)
+# for(i in procNames$col){
+#  df_beer_info[i] <- df_beer_info[i]*preProcValues$std[i]+preProcValues$mean[i] 
+# }
+knn_imp_model <- preProcess(df_beers %>%
+                          select(ABV,IBU),
+                            method = c("knnImpute"),
+                            k = 20,
+                            knnSummary = mean)
+
+
+
+df_beers_unp <- predict(knn_imp_model, df_beers,na.action = na.pass)
+procNames <- data.frame(col = names(knn_imp_model$mean), mean = knn_imp_model$mean, sd = knn_imp_model$std)
+for(i in procNames$col){
+ df_beers_unp[i] <- df_beers_unp[i]*knn_imp_model$std[i]+knn_imp_model$mean[i] 
+}
+
+
+#Cleansing beers, records 2410
+nr_rows = dim(df_beers)[1]
+#Finding the NAN values
+summary(df_beers)
+df_beers  %>% ggplot(aes(x=IBU))+geom_histogram(aes(fill="green")) 
+df_beers  %>% ggplot(aes(x=ABV))+geom_histogram(aes(fill="green")) 
+df_beers_cl1  %>% ggplot(aes(x=IBU))+geom_histogram(aes(fill="blue"))
+df_beers_cl1  %>% ggplot(aes(x=ABV))+geom_histogram(aes(fill="blue"))
+df_beers_unp  %>% ggplot(aes(x=IBU))+geom_histogram() 
+df_beers_unp  %>% ggplot(aes(x=ABV))+geom_histogram() 
+
+df_beerbre_unp %>% ggplot(aes(y=ABV))+geom_boxplot()
+
+
+
+
+```
+
+### How many breweries are present in each state
+
+```{r Summarizing by State}
+df_summary = df_breweries_2 %>% group_by(State,Name_State) %>% summarize(NumberBreweries = n())
+
+knitr::kable(
+  df_summary,
+  caption = "Number of Beers by State"
+)
+
+```
+
+### Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file
+
+```{r Merging_Data}
+df_beerbre_unp = merge(df_beers_unp,df_breweries_2,by.x = "Brewery_id",by.y = "Brew_ID")
+
+```
+
+### Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare
+
+```{r Median_Beer_Brewer, message=FALSE}
+
+df_acom_bebrew_1 = df_beerbre_unp %>% group_by(State,Name_State) %>% summarize(Median_ABV = mean(ABV),Median_IBU = mean(IBU))
+
+# df_acom_bebrew_1 %>% ggplot(aes(x=State,color=State))+geom_bar()+labs(title = "Alcohol by Volume",subtitle = "Alcohol by Volume average by State")+coord_flip()
+
+```
+### Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer
+
+```{r}
+
+df_sort_1 = arrange(df_beerbre_unp,desc(ABV)) %>% head(n = 1)
+sprintf("The state that has the maximum ABV is %s-%f",df_sort_1$Name_State,df_sort_1$ABV)
+
+```
+### Comment on the summary statistics and distribution of the ABV variable
+#### Accordint to the histogram we can notice that the data seems normally distributed
+```{r}
+
+df_beerbre_unp %>% ggplot(aes(x=ABV,fill=State))+geom_histogram()
+
+```
+### Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer
+
+```{r}
+df_beerbre_unp %>% select(IBU,ABV) %>% ggpairs(columnLabels = c("ABV","IBU"))
+
+
+
+```
+
+
+###Activity 8, Difference with respect to IBU and ABV IPA and ALE
+
+```{r}
+
+df_beerbre_fil0 = filter(df_beerbre_unp,str_detect(df_beerbre_unp$Style,regex("IPA|ALE",ignore_case = TRUE)))
+
+df_beerbre_fil1 = mutate(df_beerbre_fil0,Type= ifelse(str_detect(Style,regex("IPA",ignore_case = TRUE)),"IPA","ALE"))
+
+
+df_beerbre_fil1 %>% ggplot(aes(x=ABV,y=IBU,color=Type))+geom_point()+
+  labs(title = "Relationship IBU and AVB",subtitle = "Relationship IBU/AVB by Beer Type")+xlab("Alcohol by Volume (ABV)")+ylab("International Bitterness Unit(IBU)")
+
+
+# df_beerbre_fil1 = filter(df_beerbre_unp,str_detect(df_beerbre_unp$Style,regex("IPA",ignore_case = TRUE)))
+# 
+# df_beerbre_fil2 = filter(df_beerbre_unp,str_detect(df_beerbre_unp$Style,regex("ALE",ignore_case = TRUE)))
+
+nr_percentage = 0.7
+nr_observations = nrow(df_beerbre_fil1)
+nr_k = 5
+
+lst_index_beer = sample(nr_observations,round(nr_observations * nr_percentage))
+df_train = df_beerbre_fil1[lst_index_beer,]
+df_test = df_beerbre_fil1[-lst_index_beer,]
+
+knn_result = knn(df_train[,c(4,5)],df_test[,c(4,5)],df_train$Type,prob = TRUE,k=nr_k)
+co_table =  table(knn_result,df_test$Type)
+confusionMatrix(co_table)
+
+#When it comes down to it, a Pale Ale should have a nice hop character but medium build, whereas IPAs tend to have higher ABV and IBU.
+
+
+
+
+
+
+
+```
+

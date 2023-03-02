@@ -1,0 +1,64 @@
+---
+title: "EDA Beer Store"
+author: "Carlos Estevez"
+date: "2023-02-17"
+output: html_document
+params:
+ date: 2021-04-10
+ hospital: 
+  label: “Town:”
+  value: Central Hospital
+  input: select
+  choices: [Central Hospital, Military Hospital, Port Hospital, St. Mark's Maternity Hospital (SMMH)]
+---
+
+```{r}
+library(ggthemes)
+library(tidyverse)
+library(GGally)
+library(plotly)
+```
+# Eda Analysis SMU University
+## Lesson 8 project
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r Analysis EDA of Data CTRL ALT I,include=TRUE}
+
+iris_data = iris
+d = iris_data %>% ggplot(aes(x=Sepal.Width,y=Sepal.Length,color=Species))+geom_point()+
+  labs(title = "Analysis Iris flowers",subtitle = "Analysis Iris Flower using Attrs")
+
+ggplotly(d)
+
+knitr::kable(
+iris_data,
+caption = "Itis data"
+)
+
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

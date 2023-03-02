@@ -1,0 +1,282 @@
+---
+title: "Practicing Regex"
+author: "Carlos Estevez"
+date: "2023-02-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Practicing with String Functions
+
+```{r PracticingFunction }
+library(stringr)
+
+str1 = "This is the way it will \"print out\""
+vect_1 = c("Hello","This is an example")
+str2 = "The number of beers"
+str3 = "300 units"
+
+#WriteLines
+print(str1)
+writeLines(str1)
+
+#StrLength 
+nr_leng = str_length(vect_1)
+nr_leng 
+
+#Combining Strings
+result_1 = str_c(str2,str3,sep = " ")
+result_1
+
+#Substring
+
+st_beers = str_sub(result_1,21,23)
+st_beers
+
+#Upper case and lower case
+
+str_to_lower(str1)
+str_to_upper(str1)
+
+#Trim and Wrap
+str_trim(str1) 
+
+str_4 = "The str_wrap() function gives us a way to wrap strings into paragraphs. The formatting of the paragraphs can be adjusted by width and can include an indent or exdent. str_wrap() is typically combined with the cat() (concatenate) function"
+
+str_5 = str_wrap(str_4,width = 20)
+writeLines(str_5)
+
+
+
+```
+## Practicing with Regex
+```{r}
+
+#Using str_view and Str_View_all
+x1 = c("banana","apple","pear")
+x2 = c("action","reaction","This is the Pollution","No way action will be found","No one")
+str_view(x1,"an") #It will find all patterns related to an
+str_view_all(x1,"an")
+str_view_all(x2,"ion")
+str_view_all(x2,"ion.") #This is different from the last statement
+
+#Using Anchors
+
+str_view_all(x2,"^a")
+str_view_all(x2,"e$")
+str_view_all(x2,"^action$")
+str_view_all(x2,"^Pollution$")
+
+#We want to filter only the word action
+str_view_all(x2,"action")  #The system will bring action and reaction
+str_view_all(x2,"\\baction\\b")
+
+
+#Matching any digit
+str_6 = c("This is the number 1","No a number")
+str_view_all(str_6,"\\d")
+str_view_all(str_6,"\\s")
+
+
+
+
+```
+## Or or Alternative Path
+```{r}
+str_7 = c("action abc","This is the way xyz","Nothing is special")
+str_8 = c("charles","cherles","Jose")
+
+str_view_all(str_7,"abc|xyz")
+str_view_all(str_8,"ch(a|e)rles")
+
+
+```
+## Repetition
+* A character class is a list of characters enclosed between ‘⁠[⁠’ and ‘⁠]⁠’ which matches any single character in that list; unless the first character of the list is the caret ‘⁠^⁠’, when it matches any character not in the list. For example, the regular expression ‘⁠[0123456789]⁠’ matches any single digit, and ‘⁠[^abc]⁠’ matches anything except the characters ‘⁠a⁠’, ‘⁠b⁠’ or ‘⁠c⁠’
+* Alphanumeric characters: ‘⁠[:alpha:]⁠’ and ‘⁠[:digit:]⁠’.
+* ⁠[:blank:]⁠’
+Blank characters: space and tab, and possibly other locale-dependent characters, but on most platforms not including non-breaking space.
+* ⁠[:alpha:]⁠’
+Alphabetic characters: ‘⁠[:lower:]⁠’ and ‘⁠[:upper:]
+⁠
+* [:alnum:]
+Alphanumeric characters: ‘⁠[:alpha:]⁠’ and ‘⁠[:digit:]
+⁠[:lower:]
+Lower-case letters in the current locale.
+* ‘⁠[:digit:]⁠’
+Digits: ‘⁠0 1 2 3 4 5 6 7 8 9⁠’.
+
+```{r}
+str_9 = c("CCdsadCC","CC","CCCCAA")
+str_view_all(str_9,"C?") #?-->0 or 1, +: 1 or more, *: 0 or more
+str_view_all(str_9,"CC{1}")
+
+#How to validate a phone number dominican republic
+str_9 = "\\d{3}-\\d{3}-\\d{4}"
+str_10 = c("809-222-4969","5541")
+str_view_all(str_10,str_9)
+
+#Find all the words that start with three consonants
+str_11 = c("string","carlos","stronger")
+str_12 = "[^aeiou]{3}"
+str_view_all(str_11,str_12)
+
+
+#Here we want a word that end with ed and not eed
+str13 = "([^e])ed$"
+str14 = c("checaeed","eddcheck","tired")
+str_view_all(str14,str13)
+
+#is Q always followed by a U
+str_15 = "qu"
+
+#Word that has two voews or more
+
+str_16 = c("actioon","repetition")
+str_17 = "[aeiou]{3,}"
+str_view_all(str_16,str_17)
+
+```
+## Detect Matches
+
+```{r}
+
+str_16 = "tion|ed$"
+lst_1 = c("Reaction","Action","Tired","Bored","Carlos","Leverage")
+str_detect(lst_1,str_16)
+lst_1[str_detect(lst_1,str_16)]
+
+
+
+```
+
+# Extracting data
+* What the function str_extract will do is to extract the matched part of the word
+
+[abc]: matches a, b, or c.
+[a-z]: matches every character between a and z (in Unicode code point order).
+[^abc]: matches anything except a, b, or c.
+[\^\-]: matches ^ or -.
+[:punct:]: punctuation.
+[:alpha:]: letters.
+[:lower:]: lowercase letters.
+[:upper:]: upperclass letters.
+[:digit:]: digits.
+[:xdigit:]: hex digits.
+[:alnum:]: letters and numbers.
+[:cntrl:]: control characters.
+[:graph:]: letters, numbers, and punctuation.
+[:print:]: letters, numbers, punctuation, and whitespace.
+[:space:]: space characters (basically equivalent to \s).
+[:blank:]: space and tab.
+```{r}
+str_16 = "tion|ed$"
+lst_1 = c("Reaction","Action","Tired","Bored","Carlos","Leverage")
+#str_extract(lst_1,str_16)
+str_match(lst_1,str_16)
+#str_extract_all(lst_1,str_16)
+
+
+
+```
+
+# Repetition and Counting
+```{r}
+
+lst_t1 = c("809-898-9990","2344-7799-8669","444-123-1112")
+str_17 = "\\d{3}-\\d{3}-\\d{4}"
+str_detect(lst_t1,str_17)
+
+str_count(lst_t1,str_17)
+
+```
+# Replaning characters
+* The system will replace the entire string for the replacing character
+```{r}
+
+lst_t1 = c("809-898-9990","2344-7799-8669","444-123-1112")
+str_17 = "\\d{3}-\\d{3}-\\d{4}"
+str_replace_all(lst_t1,str_17,"444")
+str_replace(lst_t1,str_17,"444")
+
+
+str_18 = "(a) (c)"
+str_detect("a crlos",str_18) #This is TRUE
+
+str_18 = "([^a]) (c)"
+str_detect("b crlos",str_18) #This is TRUE
+
+str_19 = "([^a]) (c)"
+str_detect("b crlos",str_18) #This is TRUE
+
+
+str_20 = "(a+) (c)"
+str_detect("aba crlos",str_20) #This is TRUE, what we are saying here is A has to repeat multiple times
+
+str_21 = "c(a)rlos"
+str_22 = "carlos"
+lst_t2 = c("carlos")
+str_detect(lst_t2,str_21) #Both are TRUE
+
+
+
+
+```
+# Splitting
+
+```{r}
+
+str = "This is a great adventure"
+unlist(str_split(str," "))
+
+
+str = "This,is,a,great,adventure"
+str_split(str,",",simplify = TRUE)
+
+str = "This,is,a,great,adventure"
+str_split(str,boundary("word"),simplify = TRUE)
+
+
+
+
+```
+# Find matches
+```{r}
+str = "This,is,a,great,adventure This"
+str_locate(str,"This")
+str_locate_all(str,regex("this",ignore_case = TRUE))
+
+
+
+
+```
+
+#Subset 
+
+```{r}
+
+str = c("This,is,a,great,adventure This","carlos")
+str_subset(str,"This")
+str_extract(str,"This")
+
+
+
+```
+# Stringi
+```{r}
+
+
+
+```
+
+
+
+
+
+
+
+
+

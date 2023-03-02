@@ -12,14 +12,11 @@ set.seed(7)
 split_percentage = 67 #600/891
 
 #Reading the titatic file
-
 df_titanic_raw = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_6\\titanic_train.csv",
                             header = TRUE)
-
 #Cleaning the data
 df_titanic_raw_1 = filter(df_titanic_raw,!is.na(Age))
 nrow(df_titanic_raw_1)
-
 
 #Making adjustment titanic file
 df_titanic_1 = select(df_titanic_raw_1,Age,Pclass,Survived) 
@@ -27,11 +24,10 @@ df_titanic_1$Survived_desc = factor(df_titanic_1$Survived,levels=c(0,1),labels=c
 df_titanic_1$Class_desc = factor(df_titanic_1$Pclass,levels=c(1,2,3),labels=c("First class","Second class","Third class"))
 len_df_titanic = nrow(df_titanic_1)
 
-
 #Plotting the data before running KNN
 df_titanic_1 %>% ggplot(aes(x=Class_desc,y=Age,color=Survived_desc))+geom_point()+
   labs(title = "Titanic data analysis",subtitle = "Survival analysis using Age and Class")+
-  xlab("Titanic Passenger Class")+ylab("Passenger Age")+theme_economist_white()
+  xlab("Titanic Passenger Class")+ylab("Passenger Age")+theme_economist_white()+geom_jitter()
 
 #Selecting random indexes training dataset
 lst_trset_index = sample(1:len_df_titanic,round((split_percentage/100)*len_df_titanic))
@@ -40,15 +36,21 @@ df_tit_test = df_titanic_1[-lst_trset_index,]
 sprintf("Length training set %i",nrow(df_tit_training))
 sprintf("Length testing set %i",nrow(df_tit_test))
 
-#Runnning KNN Algorithm
+#Runnning KNN Algorithm K = 3
 results_knn = knn(df_tit_training[,1:2],df_tit_test[,1:2],df_tit_training$Survived_desc,prob = TRUE,
     k=3)
 result_table = table(results_knn,df_tit_test$Survived_desc)
 confusionMatrix(result_table)
 
+#Runnning KNN Algorithm K = 5
+results_knn = knn(df_tit_training[,1:2],df_tit_test[,1:2],df_tit_training$Survived_desc,prob = TRUE,
+                  k=5)
+result_table = table(results_knn,df_tit_test$Survived_desc)
+confusionMatrix(result_table)
+
 #Estimating the likelihood of a middle-age person in first class
 df_est_1 = data.frame(Age=33.0,Pclass=1)
-knn(df_titanic_1[,1:2],df_est_1,df_titanic_1$Survived_desc,prob = TRUE,k=3)
+knn(df_titanic_1[,1:2],df_est_1,df_titanic_1$Survived_desc,prob = TRUE,k=5)
 
 #Plotting the data before running KNN
 df_titanic_1 %>% ggplot(aes(x=Class_desc,y=Age,color=Survived_desc))+geom_point()+
@@ -77,8 +79,15 @@ df_titanic_2 %>% ggplot(aes(x=Class_desc,y=Age,color=Survived_desc,shape=Sex))+
   xlab("Titanic Passenger Class")+ylab("Passenger Age")+theme_economist_white()
 
 
-#Estimating the likelihood of a olf-age man and woman in second class
+#Estimating the likelihood of a old-age woman in second class
+df_est_2 = data.frame(Age=50,Pclass=2,sex = 0)
+knn(df_titanic_2[,1:3],df_est_2,df_titanic_2$Survived_desc,prob = TRUE,k=5)
+
+#Estimating the likelihood of a old-age man  in second class
 df_est_2 = data.frame(Age=50,Pclass=2,sex = 1)
 knn(df_titanic_2[,1:3],df_est_2,df_titanic_2$Survived_desc,prob = TRUE,k=5)
+
+
+
 
 
