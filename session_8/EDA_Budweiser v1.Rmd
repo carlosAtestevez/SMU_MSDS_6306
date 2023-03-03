@@ -18,25 +18,28 @@ library(class)
 library(e1071)
 library(stringr)
 library(maps)
+library(usmap)
 ```
 
 ## Introduction
 
--   In this EDA(Exploratory Data Analysis) we will conduct an analysis about the beers sold by Budweiser across different states in the United States. In addition, we will also show the different beer's styles managed by each brewery in each state which will give us a glimpse about the assortment breath of every Beer store
+In this EDA(Exploratory Data Analysis) we will conduct an analysis of beers sold across the United States. In addition, we will show deep analysis across different beer names, styles, and companies to shed more light into some of the weakness and advantages of certain business strategies
 
--   The whole idea of this analysis is to focus on the different business areas that the Budweiser corporation could improve in terms of customer service and stock availability
+This analysis will be presented to the Budweiser corporation. We will analyze and investigate data sets and summarize their main characteristics, often employing data visualization methods to be more compressive.  Our main goal will be to recognize the areas where the company can focus aiming to strengthen its position in the market and ultimately translate these benefits to the final customer
 
 ![Image 1: Logo Budweiser](https://cdn.shoplightspeed.com/shops/614088/files/44566076/anheuser-busch-budweiser-lager-6pk-12oz-bottles.jpg)
 
-## Reading data files
+## Retrieving data from CSV files
 
 ```{r ReadingFiles, warning=FALSE,message=FALSE,include=FALSE}
 
-#Setting working directory
+##Setting the working directory
 setwd("C:/Users/cestevez/Dropbox/Cloud PC/Thinkpad/Thinkpad Desktop/Master Data Science SMU/Class_Sessions/Data Science Sessions/Repository/SMU_MSDS_6306")
 
 
+#Reading the Beers dataset
 df_beers = read.csv("session_8/Beers.csv",header = TRUE)
+#Reading the brewery dataset
 df_breweries_1 = read.csv("session_8/Breweries.csv",header = TRUE)
 df_states = read.csv("session_8/States.csv",header=TRUE)
 df_breweries_1$State = str_trim(df_breweries_1$State)
@@ -46,13 +49,12 @@ df_breweries_2 = merge(df_breweries_1,df_states,by = "State")
 
 ```
 
-## Addressing the missing values in each column
+## Data Cleansing process: Addressing the missing values in each column
 
--   In this section we will perform data cleansing.
--   Data Cleaning is one of the important steps in EDA. Data cleaning can be done in many ways. One of them is handling missing values
+In this section, we will perform data cleansing. Data Cleaning is one of the important steps in EDA. Data cleaning can be done in many ways. One of them is handling missing values
 -   We will implement different methods for IBU and ABV
     -   ABV: Replace missing values with the arithmetic mean
-    -   IBU: Replace missing values using KnnImpute
+    -   IBU: Replace missing values using KnnImputation method
 
 ```{r DataCleansing}
 
@@ -91,10 +93,13 @@ for(i in procNames$col){
 }
 
 
+#Plotting IBU before data cleansing
 nr_rows = dim(df_beers)[1]
 df_beers  %>% ggplot(aes(x=IBU))+geom_histogram(fill="black",binwidth = 3)+
   labs(title="IBU before performing data cleansing",x="IBU(International bitterness Unit)",y="Observation number")
 
+
+#Plotting ABV before data cleansing
 df_beers  %>% ggplot(aes(x=ABV))+geom_histogram(fill="black")+
   labs(title="ABV before performing data cleansing",x="ABV(Alcohol by Volume)",y="Observation number")
 
@@ -107,6 +112,8 @@ df_beers_cl1  %>% ggplot(aes(x=IBU))+geom_histogram(fill="blue")+
 #Plotting IBU KNNImputation and ABV after data cleansing
 df_beers_unp  %>% ggplot(aes(x=IBU))+geom_histogram(fill="blue",col="black",binwidth = 3)+labs(title="IBU after performing data cleansing",subtitle = "Calculation using KnnImputation",x="IBU(International bitterness Unit)",y="Observation number")
 
+
+#Plotting ABV after data cleansing
 df_beers_unp  %>% ggplot(aes(x=ABV))+geom_histogram(fill="blue",col="black")+labs(title="ABV after performing data cleansing",x="ABV(Alcohol by Volume)",y="Observation number")+geom_density(lwd = 1.2,
                linetype = 2,
                colour = 2)
@@ -119,6 +126,8 @@ cor(df_beers_unp$ABV,df_beers_unp$IBU)
 
 
 ```
+### Conclusion data cleansing
+The distribution of both variables ABV and IBU look very similar to the initial distribution. The most challenging was the IBU activity because of the large number of observations(1005). In the end, the Knn process was very effective and the results look very good in the plot
 
 ### How many breweries are present in each state
 
@@ -130,9 +139,54 @@ knitr::kable(
   caption = "Number of Beers by State"
 )
 
+df_brewerybystate=table(df_breweries_2$State)
+df_brewerybystate= data.frame(df_brewerybystate)
+colnames(df_brewerybystate)[1]="state"
+df_brewerybystate$Freq=as.double(df_brewerybystate$Freq)
+df_brewerybystate$state=as.character(df_brewerybystate$state)
+
+df_brewerybystate$state=str_replace_all(df_brewerybystate$state," ","")
+plot_usmap(data = df_brewerybystate, regions = "state", values = "Freq", color = "#56B4E9",labels = TRUE,label_color = "#E69F00") + 
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Number of Brewery", label = scales::comma
+  ) + theme(legend.position = "right")
+
+```
+
+```{r}
+df_beerbre_unp = merge(df_beers_unp,df_breweries_2,by.x = "Brewery_id",by.y = "Brew_ID")
+
+```
+
+
+### The Top Breweries The Big 5
+
+```{r TopFiveBewUsa}
+###number of beer by state
+df_sum_ber_brew = group_by(df_beerbre_unp,Brewery_id,Name.y,State) %>% summarize(count_beer = n()) %>% arrange(desc(count_beer)) %>% head(n=5)
+
+#Dataframe Map by State
+df_usa_states_0 = usmapdata::centroid_labels("states")
+n=c(10,9,6,6,5)
+df_sum_ber_brew_0 = merge(df_sum_ber_brew,df_usa_states_0,by.x = "State",by.y = "abbr")
+
+top5americanipa=data.frame(df_sum_ber_brew_0$Name.y,df_sum_ber_brew_0$State,df_sum_ber_brew_0$x,
+                            df_sum_ber_brew_0$y,df_sum_ber_brew_0$count_beer)
+colnames(top5americanipa)=c("company","state","lon","lat","n")
+
+plot_usmap(data = top5americanipa, regions = "state", values = "n", fill="indianred",color = "lemonchiffon",labels = TRUE,label_color = "#E69F00") +  ggrepel::geom_label_repel(data = top5americanipa,
+                            aes(x = lon, y = lat, label =company),
+                            size = 3, alpha = 0.8,
+                            label.r = unit(0.5, "lines"), label.size = 0.5,
+                            segment.color = "black", segment.size = 1)+geom_point(data = top5americanipa,
+                                                    aes(x = lon, y = lat, size = n),
+                                                    color = "navyblue", alpha = 0.5)+scale_size_continuous(range = c(5, 10),name = "Number of AmericanIPA", label = scales::comma)+theme(legend.position = "right")
+
+
 ```
 
 ### Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file
+
 
 ```{r Merging_Data}
 df_beerbre_unp = merge(df_beers_unp,df_breweries_2,by.x = "Brewery_id",by.y = "Brew_ID")
@@ -145,16 +199,54 @@ df_beerbre_unp = merge(df_beers_unp,df_breweries_2,by.x = "Brewery_id",by.y = "B
 
 df_acom_bebrew_1 = df_beerbre_unp %>% group_by(State,Name_State) %>% summarize(Median_ABV = mean(ABV),Median_IBU = mean(IBU))
 
+ggplot(df_acom_bebrew_1, aes(x = State, y = Median_ABV, fill = Median_IBU)) + 
+  geom_col() +
+  ggtitle("Median ABV and IBU by State") +
+  xlab("State") +
+  ylab("Median ABV") +
+  scale_fill_gradient(low = "blue", high = "red", name="Median IBU") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 # df_acom_bebrew_1 %>% ggplot(aes(x=State,color=State))+geom_bar()+labs(title = "Alcohol by Volume",subtitle = "Alcohol by Volume average by State")+coord_flip()
 
 ```
 
-### Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer
+### Which state has the maximum alcoholic (ABV) and (IBU) beer? Which state has the most bitter (IBU) beer
 
 ```{r}
 
 df_sort_1 = arrange(df_beerbre_unp,desc(ABV)) %>% head(n = 1)
+df_sort_2 = arrange(df_beerbre_unp,desc(ABV)) %>% head(n = 5)
+df_sort_3 = arrange(df_beerbre_unp,desc(IBU)) %>% head(n = 5)
+
+
 sprintf("The state that has the maximum ABV is %s-%f",df_sort_1$Name_State,df_sort_1$ABV)
+df_usa_states_0 = usmapdata::centroid_labels("states")
+df_sum_ber_brew_0 = merge(df_sort_2,df_usa_states_0,by.x = "State",by.y = "abbr")
+df_sum_ber_brew_1 = merge(df_sort_3,df_usa_states_0,by.x = "State",by.y = "abbr")
+
+df_top_abv = data.frame(state = df_sum_ber_brew_0$State,ABV = df_sum_ber_brew_0$ABV,lat=df_sum_ber_brew_0$y,lon=df_sum_ber_brew_0$x,City=df_sum_ber_brew_0$City)
+
+df_top_ibu = data.frame(state = df_sum_ber_brew_1$State,IBU = df_sum_ber_brew_1$IBU,lat=df_sum_ber_brew_1$y,lon=df_sum_ber_brew_1$x,City=df_sum_ber_brew_1$City)
+
+#plot top 5 state that has the most ABV beer
+plot_usmap(data = df_top_abv, regions = "state", values = "ABV", color = "#56B4E9",labels = TRUE,label_color = "#E69F00") + 
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Maximum Alcoholic (ABV)", label = scales::comma
+  ) + theme(legend.position = "left")+ggrepel::geom_label_repel(data = df_top_abv,
+             aes(x = lon, y = lat, label = City),size = 3, alpha = 0.8,
+             label.r = unit(0.5, "lines"), label.size = 0.5,
+             segment.color = "black", segment.size = 1)
+
+#plot top 5 state that has the most IBU beer
+plot_usmap(data = df_top_ibu, regions = "state", values = "IBU", color = "#56B4E9",labels = TRUE,label_color = "#E69F00") + 
+  scale_fill_continuous(
+    low = "white", high = "purple", name = "Maximum Alcoholic (IBU)", label = scales::comma
+  ) + theme(legend.position = "left")+ggrepel::geom_label_repel(data = df_top_ibu,
+             aes(x = lon, y = lat, label = City),size = 3, alpha = 0.8,
+             label.r = unit(0.5, "lines"), label.size = 0.5,
+             segment.color = "black", segment.size = 1)
+
 
 ```
 
@@ -162,6 +254,20 @@ sprintf("The state that has the maximum ABV is %s-%f",df_sort_1$Name_State,df_so
 
 ```{r}
 
+df_beerbre_fil0 = filter(df_beerbre_unp,str_detect(df_beerbre_unp$Style,regex("IPA|ALE",ignore_case = TRUE)))
+
+
+#We create the column Type for classifying IPA Beer Styles and the Rest
+df_beerbre_fil1 = mutate(df_beerbre_fil0,Type= ifelse(str_detect(Style,regex("IPA",ignore_case = TRUE)),"IPA","ALE"))
+
+
+df_beerbre_fil1%>%select(IBU,ABV,Type)%>%
+  ggpairs(aes(color=Type))
+
+
+df_beers_unp  %>% ggplot(aes(x=ABV))+geom_histogram(fill="blue",col="black")+labs(title="ABV Histogram",x="ABV(Alcohol by Volume)",y="Observation number")+geom_density(lwd = 1.2,
+               linetype = 2,
+               colour = 2)
 skewness(df_beerbre_unp$ABV)
 kurtosis(df_beerbre_unp$ABV)
 
