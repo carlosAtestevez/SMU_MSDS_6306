@@ -1,0 +1,20 @@
+Amazon AWS Account
+
+
+carlos@estevez.do
+
+carlosatestevez
+@Android1234
+
+
+Instance
+
+https://us-east-2.console.aws.amazon.com/ec2/home?region=us-east-2#Instances:	
+
+
+http://3.138.101.198/auth-sign-in
+
+
+AIM
+cestevez
+Android12345

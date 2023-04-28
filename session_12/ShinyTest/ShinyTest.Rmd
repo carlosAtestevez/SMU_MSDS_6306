@@ -1,0 +1,102 @@
+---
+title: "ShinyTest"
+author: "Carlos Estevez"
+date: "2023-03-20"
+output: html_document
+runtime: shiny
+---
+
+```{r Testing}
+
+
+ df_beers = read.csv("Beers.csv",header = TRUE)
+ df_breweries = read.csv("Breweries.csv",header = TRUE)
+
+```
+
+
+
+
+```{r ShinyApp, echo = FALSE, warning=FALSE,message=FALSE}
+
+
+library(shiny)
+library(shinythemes)
+library(rmarkdown)
+library(tidyverse)
+library(stringr)
+library(plotly)
+
+lstProv = c("Santiago","Santo Domingo","Mao","La Vega")
+
+
+ui <- fluidPage(theme = shinytheme("cerulean"),
+  
+  #>>>>>Inputs<<<<<              
+  #TextFields
+  textInput("ctxName","What's your name?"),
+  passwordInput("ctxPass","What's your password"),
+  textAreaInput("ctxFDesc","What is the description of the task?",rows = 3),
+  
+  #Numeric Fields
+  numericInput("cnrNumber","What's the number?",min=0,max = 10,value = 1),
+  
+  #Slider inputs
+  sliderInput("cslNumber","What's is the slide number?",min=0,max=30,value=15),
+  sliderInput("clsNumber2","What is the range of numbers?",min=0,max=40,value=c(10,20)),
+  
+  #Dates
+  dateInput("cdtAge","When were you born?"),
+  dateRangeInput("cdtFlight","What is your schedule?"),
+  
+  #Limited choices 
+  selectInput("ccb","Select the province",lstProv),
+   selectInput("ccb","Select the province",lstProv,multiple = TRUE),
+  
+  #RadioButtons
+  radioButtons("crdProvinces","What is your province?",lstProv),
+  
+  #CheckBox
+  checkboxGroupInput("cch","Select the provinces",lstProv),
+  
+  #Buttons
+  actionButton("cbtClick","Confirm!"),
+  actionButton("cbtClick2","Confirm",icon = icon("check")),
+  
+  #Select file
+  fileInput("cflBeers",NULL),
+  
+  
+  #>>>>>Outputs<<<<< 
+  
+  
+  #Outputs
+  textOutput("cotxName"),
+  verbatimTextOutput("coveName"),
+  verbatimTextOutput("coveSum"),
+  
+  #Tables
+  tableOutput("ctbBeers"),
+  dataTableOutput("ctbBrew")
+  
+  
+
+                
+)
+
+server <- function(input, output, session) {
+  output$cotxName = renderText("Hello there!")
+  output$coveName = renderText("Hello there!")
+  output$coveSum = renderPrint({summary(1:10)})
+#output$ctbBeers = renderTable({df_beers})
+  output$ctbBrew = renderDataTable(df_breweries,options=list(pageLength=5))
+
+  
+}
+
+shinyApp(ui, server)
+
+
+
+```
+

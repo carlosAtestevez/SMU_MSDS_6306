@@ -1,0 +1,14 @@
+name: BeerStudyApp
+title: BeerStudyApp
+username:
+account: estevez
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8625042
+bundleId: 7008014
+url: https://estevez.shinyapps.io/BeerStudyApp/
+when: 1679781889.07635
+lastSyncTime: 1679781889.07636
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: BeerStudyv1.Rmd

@@ -1,0 +1,155 @@
+---
+title: "Testing1"
+author: "Carlos Estevez"
+date: "2023-04-01"
+output: html_document
+---
+
+
+# Libraries
+```{r}
+
+library(tidyverse)
+library(ggalt)
+library(ggExtra)
+
+
+```
+
+#Graphics
+```{r}
+lf_mpg = mpg
+
+
+#Geom point
+#Size, shape, color, alpha
+lf_mpg %>% ggplot(aes(x=displ,y=hwy,color=class))+geom_point()+
+  labs(title="dasdasd",subtitle = "asdsad",x="a",y="b")+geom_vline(xintercept = 4)
+
+#Face Grid
+lf_mpg %>% ggplot(aes(x=displ,y=hwy,color=class))+geom_point()+
+  labs(title="dasdasd",subtitle = "asdsad",x="a",y="b")+facet_wrap(~class)
+
+
+#Encircle
+lf_mpg_comp = filter(lf_mpg,class=="compact")
+lf_mpg %>% ggplot(aes(x=displ,y=hwy,color=class))+geom_point()+geom_encircle(aes(x=displ,y=hwy),data=lf_mpg_comp)
+
+#Ggmarginal
+lf_mpg_comp = filter(lf_mpg,class=="compact")
+g1 = lf_mpg %>% ggplot(aes(x=displ,y=hwy,color=class))+geom_point()
+ggMarginal(g1, type = "histogram", fill="transparent")
+
+
+
+
+#Barchart, stat and identity
+
+#geom_abline(intercept = 37, slope = -5)
+#geom_hline(yintercept = 20)
+#geom_vline(xintercept = 5)
+
+
+lf_mpg %>% ggplot(aes(x=class,fill=manufacturer,y=displ))+geom_bar(stat = "identity",position = "identity")+coord_polar()
+lf_mpg %>% ggplot(aes(x=class,fill=manufacturer,y=displ))+geom_bar(stat = "identity",position = "identity")+coord_flip()
+
+
+
+#Histogram
+
+lf_mpg %>% ggplot(aes(x=class))+geom_bar()
+
+lf_mpg %>% ggplot(aes(x=class))+geom_density(aes(fill=class,alpha=0.8))
+
+
+#Freepotly
+
+lf_mpg %>% ggplot(aes(x=hwy))+geom_freqpoly(aes(color=class))
+
+#Boxplot
+
+lf_mpg %>% ggplot(aes(x=class,y=hwy))+geom_boxplot()
+
+
+```
+
+
+```{r}
+
+plot_chart = function(type){
+  
+  if(type == 1){
+    mpg %>% ggplot(aes(x=displ))+geom_histogram()
+  }else{
+    mpg %>% ggplot(aes(x=displ))+geom_bar()
+  }
+  
+  
+}
+
+plot_chart(2)
+
+
+
+```
+
+
+# Dplyr
+```{r}
+
+library(dplyr)
+
+#Filter
+lf_2 = filter(mpg,class=="compact" & cyl == 4)
+
+#Conditions, & --> And , | --> Or  !--> Not 
+#In 
+
+filter(mpg,class %in% c("compact","suv"))
+
+#Filfer NA
+
+filter(mpg,is.na(class))
+
+
+#Arrange
+
+arrange(mpg,desc(class))
+
+
+
+#Select
+
+select(mpg,class)
+
+
+mutate(mpg,new_col = paste("dsasa",class))%>%select(new_col)
+
+
+#Remove missing values
+
+mpg %>% select(class,hwy) %>% group_by(class) %>% summarise(count=n())
+
+```
+
+# Regular expressions and another tools
+```{r}
+
+str1 = "The cost of the item is $20.26"
+
+nr = parse_number(str1)
+nr
+
+str2 = parse_character(str1)
+str2
+
+parse_integer(str1)
+
+
+str2 = "Carlos|Jose|Albert"
+
+str3 = separate(str2,sep = "|")
+
+
+```
+

@@ -1,0 +1,44 @@
+---
+title: "ShinyTest3"
+author: "Carlos Estevez"
+date: "2023-03-20"
+output: html_document
+runtime: shiny
+---
+
+```{r echo=FALSE}
+
+
+
+library(shiny)
+
+ui <- fluidPage(
+  titlePanel("Hello App"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("obs","Observations",min=0,max=1000,value = 400),
+      numericInput("cnrSamples","Introduce the number of samples",value = 2000,min=1,max=5000),
+      sliderInput("cslBreak","Introduce the number of breaks",min = 10,max = 100,value=50),
+      textInput("ctxName","Introduce your name"),
+      dateRangeInput("cdtSch","When do you plan to travel?")
+    ),
+    mainPanel(
+      plotOutput("distPlot")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  output$distPlot = renderPlot({
+    lst_nor = rnorm(input$cnrSamples)
+    hist(lst_nor,breaks=input$cslBreak)
+  })
+  
+}
+
+shinyApp(ui, server)
+
+```
+
+

@@ -1,0 +1,73 @@
+---
+title: "BeerStudyApp_v1"
+author: "Carlos Estevez"
+date: "2023-03-20"
+output: html_document
+runtime: shiny
+---
+
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+
+library(shiny)
+library(colourpicker)
+library(tidyverse)
+library(dbplyr)
+
+ui <- fluidPage(
+      titlePanel("Beer Study accross the United Stes"),
+      navlistPanel(id="tabset",
+        tabPanel("Upload data",
+               fileInput("cflBeers","Select beer's file",accept = c(".csv", ".tsv")),
+               fileInput("cflBreweries","Select breweries's file",accept = c(".csv", ".tsv")),
+               ),
+     tabPanel("IBU Analysis",           
+               colourInput("cciCoIBU","Select the color",value = "blue"),
+               sliderInput("cslBrIBU","Select number of breaks",min=1,max=1000,value = 100),
+               sliderInput("cslWdIBU","Select Bin width",min=0.1,max=10,value = 0.1)
+               ),
+     tabPanel("ABV Analysis",           
+               colourInput("cciCoABV","Select the color",value = "green"),
+               sliderInput("cslBrABV","Select number of breaks",min=1,max=1000,value = 100),
+               sliderInput("cslWdABV","Select Bin width",min=0.1,max=10,value = 0.1)
+               )),
+        fluidRow(
+        column(6,"",plotOutput("ploIBU")),
+        column(6,"",plotOutput("ploABV")))
+)
+        
+
+
+server <- function(input, output, session) {
+
+    output$ploIBU = renderPlot({
+      fileIBU = input$cflBeers
+      ext_file <- tools::file_ext(fileIBU$datapath)
+      req(fileIBU)
+      validate(need(ext_file == "csv", "Please upload a csv file"))
+      dfs_beers = read.csv(fileIBU$datapath,header = TRUE)
+      ggplot(dfs_beers,aes(x=IBU))+geom_histogram(fill=input$cciCoIBU,bins = input$cslBrIBU)
+  })
+  
+  output$ploABV = renderPlot({
+      fileBeers = input$cflBeers
+      ext_file <- tools::file_ext(fileBeers$datapath)
+      req(fileBeers)
+      validate(need(ext_file == "csv", "Please upload a csv file"))
+      dfs_beers = read.csv(fileBeers$datapath,header = TRUE)
+      ggplot(dfs_beers,aes(x=ABV))+geom_histogram(fill=input$cciCoABV,bins = input$cslBrABV)
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+
+#df_beers %>% ggplot(aes(x=IBU))+geom_histogram(fill="blue",bins = 100)
+
+
+```
+

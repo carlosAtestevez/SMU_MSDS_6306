@@ -1,0 +1,42 @@
+---
+title: "NBA2"
+author: "Carlos Estevez"
+date: "2023-04-22"
+output: html_document
+---
+
+```{r}
+
+df_lal_data = filter(gamedata <- game_logs(seasons = 2023),idTeam == 1610612747)
+df_lal_lost = filter(lal_data,outcomeGame == 'L')
+df_gameid = data.frame(idGame = df_lal_lost$idGame)
+df_gameid = df_gameid[!duplicated(df_gameid), ]
+
+df_logames_ad = filter(lal_lost,namePlayer == "Anthony Davis")
+df_logames_lbj = filter(lal_lost,namePlayer == "LeBron James")
+
+vec_lal_lost_bothplayers = as.numeric(0)
+df_lal_lost_bothplayers =data.frame(idGame=numeric(0),lbjPts=numeric(0),adPts=numeric(0))
+
+for(v_index in 1:length(df_gameid)){
+   vl_game_id = df_gameid[v_index]
+   #print(paste0("Game",as.character(vl_game_id)))
+   dfl_ad_per = df_lal_lost %>% filter(idGame==vl_game_id & namePlayer == "Anthony Davis")
+   dfl_lbj_per = df_lal_lost %>% filter(idGame==vl_game_id & namePlayer == "LeBron James")
+   if(nrow(dfl_ad_per)>0 & nrow(dfl_lbj_per)>0){
+     vec_lal_lost_bothplayers = rbind(df_lal_lost_bothplayers,vl_game_id)
+     
+     df_temp = data.frame(vl_game_id,lbjPts=dfl_lbj_per$pts,adPts=dfl_ad_per$pts,total=dfl_ad_per$pts+dfl_lbj_per$pts)
+     df_lal_lost_bothplayers = rbind(df_lal_lost_bothplayers,df_temp)
+   }
+  
+   
+}
+
+df_lal_lost_bothplayers_pl = gather(df_lal_lost_bothplayers,key="Player",value="Points",2:3)
+
+df_lal_lost_bothplayers_pl %>% ggplot(aes(x=vl_game_id,y=total,fill=Player))+geom_bar(stat = "identity")
+
+
+```
+

@@ -1,0 +1,357 @@
+---
+title: 'Session 11: Time Series Analysis'
+author: "Carlos Estevez"
+date: "2023-03-13"
+output: html_document
+---
+
+
+# Time Series Analysis
+
+
+## Activity 1: Analyzing SES(Simple Exponential Smoothing)
+```{r SES}
+
+#Loading library
+library(fpp)
+
+alpha_fit_1 = 0.65  #Model 1
+alpha_fit_2 = 0.6  # Model 2
+forecast_horizon = 10 #Forecast horizon
+
+#Setting dataset
+data(ausair)
+
+#Using window to determine the training dataset
+air = window(ausair, start = 1990, end = 2004)
+air_1 = window(ausair, start = 1990, end = 2020)
+
+# Plotting ausair
+plot(air,ylab = "Airline Passegners", xlab = "Year", main = "Airline Passengers")
+
+
+#Fitting three different models
+fit1 = ses(air, initial = "simple",alpha = alpha_fit_1,h = forecast_horizon)
+fit2 = ses(air,initial = "simple",alpha = alpha_fit_2, h = forecast_horizon)
+fit3 = ses(air, h = forecast_horizon) #defaults
+
+
+# the forecast package has a nice accuracy funciton with various metrics just pass it the 
+# the model and the data!  (This is the "training" data)
+
+
+#Retrieving forecast accuracy
+result_m1 = accuracy(fit1, ausair)
+result_m1[2,]  #RMSE m1
+result_m2 =accuracy(fit2, ausair)
+result_m2[2,]  #RMSE m2
+result_m3 = accuracy(fit3, ausair)
+result_m3[2,]  #RMSE m3
+
+
+#Plotting Initial TS
+plot(air,ylab = "Airline Passegners", xlab = "Year", type = "o", xlim = c(1990, 2015),ylim = c(15,50), main = "Airline Passengers")
+
+#Plot the estimated values from the models .. the "fitted" values are the training values.
+lines(fitted(fit1), col = "blue", type = "o")
+lines(fitted(fit2), col = "red", type = "o")
+lines(fitted(fit3), col = "green", type = "o")
+
+# Plotting forecast
+lines(fit1$mean, col = "blue", type = "o")
+lines(fit2$mean, col = "red", type = "o")
+lines(fit3$mean, col = "green", type = "o")
+
+
+#Legend
+lst_legend  = c("History",paste("alpha:m1=",as.character(alpha_fit_1)),
+                paste("alpha:m2=",as.character(alpha_fit_2)),
+                paste("alpha:m3=", "default")
+                )
+legend("topleft", lty=1, col=c("black","blue","red","green"), c(lst_legend))
+
+# These are the actual values!  Compare visually with the forecasts!
+air2008 = window(ausair, start = 1990, end = 2007)
+points(air2008, type = "o")
+
+
+
+# Compare the forecasts with the actual values with various fit metrics.
+# accuracy(fit1, air2008)
+# accuracy(fit2, air2008)
+# accuracy(fit3, air2008)
+
+
+
+
+```
+## Activity 2: Analyzing Holt(Two Parameters)
+### Summary of models
+* Model 1: Simple trending model alpha = 0.8, beta = 0.2
+* Model 2: Multiplicative trending model model alpha = 0.8, beta = 0.2
+* Model 3: Simple Damp trending model model alpha = 0.8, beta = 0.2
+* Model 4: Multiplicative trending model model alpha = 0.8, beta = 0.2
+```{r HoltTwoPar}
+
+alpha_m1 = 0.8
+alpha_m2 = 0.8
+alpha_m3 = 0.8
+alpha_m4 = 0.8
+beta_m1 = 0.2
+beta_m2 = 0.2
+beta_m3 = 0.2
+beta_m4 = 0.2
+forecast_horizon = 5
+
+
+#Fitting the models 
+fit1h = holt(air, alpha = alpha_m1, beta = beta_m1, initial = "simple", h = forecast_horizon)
+fit2h = holt(air, alpha = alpha_m2, beta = beta_m2, initial = "simple", exponential = TRUE, h = forecast_horizon)
+fit3h = holt(air, alpha = alpha_m3, beta = beta_m3, damped = TRUE, initial = "optimal", h = forecast_horizon)
+fit4h = holt(air, alpha = alpha_m4, beta = beta_m4, damped = TRUE, initial = "optimal", exponential = TRUE, h = forecast_horizon)
+
+
+#Plotting historical data, fitted values and forecast m1 and m2
+plot(air,ylab = "Airline Passegners", xlab = "Year", type = "o", xlim = c(1990, 2010),ylim = c(15,60))
+lines(fitted(fit1h),col = "blue", type= "o")
+lines(fitted(fit2h), col = "red", type= "o")
+lines(fit1h$mean, col = "blue", type= "o")
+lines(fit2h$mean,col = "red", type= "o")
+
+#Plotting forecast and fitted values m3
+lines(fitted(fit3h), col = "darkgreen", type= "o")
+lines(fit3h$mean,col = "darkgreen", type= "o")
+
+#Plotting forecast and fitted values m4
+lines(fitted(fit4h), col = "cyan", type= "o")
+lines(fit4h$mean,col = "cyan", type= "o")
+
+#Legend
+lst_legend2  = c("History",paste("m1,alp:",as.character(alpha_m1),"beta:",as.character(beta_m1)),
+                paste("m2,alp:",as.character(alpha_m2),"beta:",as.character(beta_m2)),
+                paste("m3,alp:",as.character(alpha_m3),"beta:",as.character(beta_m3)),
+                paste("m4,alp:",as.character(alpha_m4),"beta:",as.character(beta_m4)))
+legend("topleft", lty=1, col=c("black","blue","red","darkgreen","cyan"), c(lst_legend2))
+
+# with implicit Test set... it figures out by the time which are training and which are test. 
+res1=accuracy(fit1h, ausair)
+res2=accuracy(fit2h, ausair)
+res3=accuracy(fit3h, ausair)
+res4=accuracy(fit4h, ausair)
+
+res1[2,]
+res2[2,]
+res3[2,]
+res4[2,]
+
+
+# #with explicit Test set ... (same output)
+# airTest = window(ausair, start = 2005)
+# accuracy(fit1h, airTest)
+# accuracy(fit2h, airTest)
+# accuracy(fit3h, airTest)
+
+# #Add the actual values to visually compare forecasts to actual values
+# air2008 = window(ausair, start = 1990, end = 2009)
+# points(air2008, type = "o")
+
+
+
+
+```
+## Holt-Winters
+```{r HoltWinter}
+
+data("austourists")
+
+# returns a ts object.  
+aust = window(austourists,start = 1999, end = 2004)
+
+#Decomposing TS
+components_aust <- decompose(aust)
+plot(components_aust)
+
+
+#fit an additive and multiplicative model
+fit1s = hw(aust,seasonal = "additive",h = 40)
+fit2s = hw(aust,seasonal = "multiplicative",h = 40)
+
+#Plotting
+autoplot(aust) +
+  autolayer(fit1s, series="HW additive forecasts", PI=FALSE) +
+  autolayer(fit2s, series="HW multiplicative forecasts",    PI=FALSE) +
+  xlab("Year") +
+  ylab("Visitor nights (millions)") +
+  ggtitle("Australian Tourist") +
+  guides(colour=guide_legend(title="Forecast"))
+
+#Compare the accuracy
+res_1 = accuracy(fit1s,austourists)
+res_2 = accuracy(fit2s,austourists)
+res_1[2,]
+res_2[2,]
+
+fit1s$model
+fit2s$model
+
+
+```
+## Activity 4: Temperature Data 
+### Maximum annual temperatures (degrees Celsius) for Moorabbin Airport, Melbourne. 1971-2016.
+```{r}
+library(fpp2)
+library(fpp)
+
+#Retrieving data
+data("maxtemp")
+
+#Creating datset
+ts_temp = window(maxtemp,start = 1990, end = 2011)
+ts_err = window(maxtemp,start = 2012, end = 2016)
+
+#Plotting initial dataset
+autoplot(ts_temp) +
+  xlab("Year") +
+  ylab("degrees celsius") +
+  ggtitle("Maximum annual temperatures at Moorabbin Airport, Melbourne")
+
+#Forecast horizon
+forecast_horizon = 10
+
+#Fitting SES model
+ses_model = ses(ts_temp ,  h = forecast_horizon)
+
+#Plotting SES model
+autoplot(ts_temp,series = "Historical data") +
+  autolayer(fitted(ses_model), series="Past predicted line", PI=FALSE) +
+  autolayer(ses_model$mean, series="Present forecast",    PI=FALSE) +
+    xlab("Year") +
+  ylab("degrees celsius") +
+  labs(title = "Maximum annual temperatures at Moorabbin Airport, Melbourne",subtitle = "SES model")
+
+#Fitting holt model
+holt_model = holt(ts_temp, damped = TRUE, initial = "optimal", h = forecast_horizon)
+#Plotting Hold model
+autoplot(ts_temp,series = "Historical data") +
+  autolayer(fitted(holt_model), series="Past predicted line", PI=FALSE) +
+  autolayer(holt_model$mean, series="Present forecast",    PI=FALSE) +
+    xlab("Year") +
+  ylab("degrees celsius") +
+  labs(title = "Maximum annual temperatures at Moorabbin Airport, Melbourne",subtitle = "Holt model")
+
+#Calculating RMSE
+res_ses = accuracy(ses_model,maxtemp)
+res_holt = accuracy(holt_model,maxtemp)
+
+#Calculating AIC
+ses_model$model
+holt_model$model
+ 
+res_ses
+res_holt
+
+
+
+```
+## Wizard
+```{r Wizard}
+
+library(dygraphs)
+library(xts) 
+
+
+df_oli = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_11\\Unit11TimeSeries_Ollivander.csv",header = FALSE)
+
+df_greg = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_11\\Unit11TimeSeries_Gregorovitch.csv",header = FALSE)
+
+df_oli$Date_v1 = as.Date(df_oli$V1,"%m/%d/%Y")
+df_greg$Date_v1 = as.Date(df_oli$V1,"%m/%d/%Y")
+
+ts_oli = xts(x=df_oli$V2,order.by = df_oli$Date_v1)
+ts_greg = xts(x=df_greg$V2,order.by = df_greg$Date_v1)
+ts_bind = cbind(ts_oli,ts_greg)
+
+p_bind <- dygraph(ts_bind,main = "Wands sold over years")%>%
+  dyAxis("y",label="Number of sold Wands(Units)") %>%
+  dyAxis("x",label="Years") %>%
+  dySeries("ts_oli", label = "Ollivander") %>%
+  dySeries("ts_greg", label = "Gregorovitch")%>% dyRangeSelector() %>%
+  dyHighlight(highlightCircleSize = 5, 
+              highlightSeriesBackgroundAlpha = 0.2,
+              hideOnMouseOut = FALSE) %>%
+  dyShading(from = "1995-1-1", to = "1999-1-1")
+
+p_bind
+
+
+
+
+
+```
+
+
+## Demo 
+
+```{r}
+
+
+forecast_horizon = 48
+
+
+#Reading data
+df_prd = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_11\\product_water1.csv",header = TRUE)
+df_prd$Date = as.Date(df_prd$Date,format = "%b-%y-%d")
+df_prd_ts = ts(df_prd$Litters,frequency = 12,start = c(2020,02))
+
+
+
+components_aust <- decompose(df_prd_ts)
+plot(components_aust)
+
+#Fitting holt winter model optimized
+hw_add = hw(df_prd_ts,seasonal = "additive",h = forecast_horizon)
+
+#Firtting manual model
+hw_add_mp = hw(df_prd_ts,seasonal = "additive",h = forecast_horizon,alpha = 0.1,beta = 0.05,gamma = 0.5,initial = "simple")
+
+#Firtting manual model
+hw_add_mul = hw(df_prd_ts,seasonal = "multiplicative",h = forecast_horizon,alpha = 0.1,beta = 0.05,gamma = 0.5,initial = "simple")
+
+hw_add$model
+hw_add_mp$model
+
+
+ts_forecast = hw_add_mp$mean
+ts_bind2 = cbind(df_prd_ts,ts_forecast)
+
+
+p_bindg <- dygraph(ts_bind2,main = "Sold Units Bonafont 6 litters")%>%
+  dyAxis("y",label="Litters") %>%
+  dyAxis("x",label="Years-Month") %>%
+  dySeries("df_prd_ts", label = "History") %>%
+  dySeries("ts_forecast", label = "Forecast") %>%
+  dyRangeSelector()
+
+p_bindg
+
+
+
+```
+```{r AnaFRE}
+
+
+df_pro_1 = read.csv("C:\\Users\\cestevez\\Desktop\\DataFre1.csv",header = TRUE)
+df_pro_1$date_1 = as.Date(str_c(str_sub(df_pro_1$Week,7,10),str_sub(df_pro_1$Week,4,5),str_sub(df_pro_1$Week,1,2),sep = "-"),"%Y-%m-%d")
+
+
+ts_pro = ts(df_pro_1$Sales,frequency = 52,start = c(2020,12,28))
+
+res = decompose(ts_pro)
+plot(res)
+
+
+
+
+```
+
+

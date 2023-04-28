@@ -1,0 +1,303 @@
+---
+title: "Data Ana 1"
+author: "Carlos Estevez"
+date: "2023-03-31"
+editor_options: 
+  chunk_output_type: console
+output: html_document
+---
+
+# Data Analysis
+
+```{r LoadingLibraries}
+
+library(tidyverse)
+library(stringr)
+library(caret)
+library(e1071)
+library(class)
+library(RCurl) 
+library(aws.s3)
+library(smotefamily)
+library(GGally)
+
+
+```
+
+
+## Reading data
+```{r}
+
+
+df_std_1 = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_14_15\\CaseStudy2-data.csv",header = TRUE)
+
+
+```
+
+
+```{r ConnectingAmazonS3}
+
+
+Sys.setenv("AWS_ACCESS_KEY_ID" = "AKIA5HRB7XJNIOKHMHYK",
+           "AWS_SECRET_ACCESS_KEY" = "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",
+           "AWS_DEFAULT_REGION"="us-east-2")
+
+obj <- get_object("CaseStudy2-data.csv", bucket = "ddsproject1")
+df_std_1=read.csv(text = rawToChar(obj), sep=",", header = TRUE)
+
+```
+
+
+
+```{r TransformingData}
+
+#Categorical variables
+df_std_1$BusinessTravel = factor(df_std_1$BusinessTravel)
+df_std_1$Attrition = factor(df_std_1$Attrition)
+df_std_1$Department = factor(df_std_1$Department)
+df_std_1$Education = factor(df_std_1$Education)
+df_std_1$EducationField = factor(df_std_1$EducationField)
+df_std_1$EnvironmentSatisfaction = factor(df_std_1$EnvironmentSatisfaction)
+df_std_1$Gender = factor(df_std_1$Gender)
+df_std_1$JobLevel = factor(df_std_1$JobLevel)
+df_std_1$JobRole = factor(df_std_1$JobRole)
+df_std_1$JobSatisfaction = factor(df_std_1$JobSatisfaction)
+df_std_1$MaritalStatus = factor(df_std_1$MaritalStatus)
+df_std_1$OverTime = factor(df_std_1$OverTime)
+df_std_1$RelationshipSatisfaction = factor(df_std_1$RelationshipSatisfaction)
+df_std_1$Over18 = factor(df_std_1$Over18)
+
+
+
+```
+
+
+
+```{r DataExploration}
+
+
+#Exploring 
+df_std_1 %>% ggplot(aes(x=Attrition,fill=Attrition))+geom_bar()
+df_perc_1 = df_std_1 %>% count(Attrition) %>% mutate(perc=(n/(nrow(df_std_1)))*1)
+df_perc_1 %>% ggplot(aes(x=Attrition,y=perc,fill=Attrition))+geom_bar(stat="identity")+
+  labs(title="Attrution Exploration",y="Percentage(%)",x="Decision")+scale_y_continuous(labels=scales::percent) 
+
+
+#Plotting continous variables
+
+#Monthly Income --> Yes
+df_std_1 %>% ggplot(aes(x=MonthlyIncome))+geom_histogram(aes(fill=Attrition))+labs(title="Monthly income distribution",y="Count",x="Monthly Income")
+df_std_1 %>% ggplot(aes(x=Attrition,y=MonthlyIncome))+geom_boxplot(aes(fill=Attrition))+
+  labs(title="Monthly income distribution",y="Count",x="Monthly Income")
+
+#YearsAtCompany --> No
+df_std_1 %>% ggplot(aes(x=YearsAtCompany))+geom_histogram(aes(fill=Attrition))+
+  labs(title="Distribution of Years at the company",y="Number of employees",x="Years at the company")
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsAtCompany))+geom_boxplot()+
+  labs(title="Distribution of Years at the company",y="Number of employees",x="Years at the company")
+
+#YearsInCurrentRole --> Maybe
+df_std_1 %>% ggplot(aes(x=YearsInCurrentRole))+geom_histogram(aes(fill=Attrition))
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsInCurrentRole))+geom_boxplot()
+
+#YearsWithCurrManager --> Maybe
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsWithCurrManager))+geom_bar(aes(fill=Attrition),stat = "identity")
+df_std_1 %>% ggplot(aes(x=YearsWithCurrManager))+geom_histogram(aes(fill=Attrition))
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsWithCurrManager))+geom_boxplot()
+
+
+#Ploting categorical variables
+
+#Overtime -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=OverTime))+geom_bar()
+table(df_std_1$OverTime,df_std_1$Attrition)
+
+#Job Role -->Maybe
+df_std_1 %>% ggplot(aes(x=Attrition,fill=JobRole))+geom_bar()
+table(df_std_1$JobRole,df_std_1$Attrition)
+
+
+#Business Travel -->No
+df_std_1 %>% ggplot(aes(x=Attrition,fill=BusinessTravel))+geom_bar()
+table(df_std_1$BusinessTravel,df_std_1$Attrition)
+
+#Department -->No
+df_std_1 %>% ggplot(aes(x=Attrition,fill=Department))+geom_bar()
+table(df_std_1$Department,df_std_1$Attrition)
+
+#Env.Satisfaction -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=EnvironmentSatisfaction))+geom_bar()
+table(df_std_1$EnvironmentSatisfaction,df_std_1$Attrition)
+
+#Job Staisfaction -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=JobSatisfaction))+geom_bar()
+table(df_std_1$JobSatisfaction,df_std_1$Attrition)
+
+#Maritial Status -->Maybe 
+df_std_1 %>% ggplot(aes(x=Attrition,fill=MaritalStatus))+geom_bar()
+table(df_std_1$MaritalStatus,df_std_1$Attrition)
+
+
+
+
+df_std_1 %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+
+
+df_std_1 %>% select(MonthlyIncome,DistanceFromHome,Attrition) %>% ggpairs(aes(color=Attrition))
+
+```
+
+
+
+
+# Chi-Square Test
+## To decide which categorical variables should be kept in the attrition model, Chi-Square will be used to test whether there is a relationship between the categorical variables and attrition. The null hypothesis for this test is the two variables are independent, and the alternative hypothesis is the variables are not independent. In order to reject the null hypothesis and keep variables in the model, the p-value of this test must have a p-value below .05.
+```{r DeterminingVariableImportance}
+
+chisq.test(df_std_1$BusinessTravel, df_std_1$Attrition)
+chisq.test(df_std_1$Department, df_std_1$Attrition)
+chisq.test(df_std_1$Education, df_std_1$Attrition)
+chisq.test(df_std_1$EducationField, df_std_1$Attrition)
+chisq.test(df_std_1$EnvironmentSatisfaction, df_std_1$Attrition)
+chisq.test(df_std_1$Gender, df_std_1$Attrition)
+chisq.test(df_std_1$JobInvolvement, df_std_1$Attrition)
+chisq.test(df_std_1$JobLevel, df_std_1$Attrition)
+chisq.test(df_std_1$JobRole, df_std_1$Attrition)
+chisq.test(df_std_1$JobSatisfaction, df_std_1$Attrition)
+chisq.test(df_std_1$MaritalStatus, df_std_1$Attrition)
+chisq.test(df_std_1$PerformanceRating, df_std_1$Attrition)
+chisq.test(df_std_1$OverTime, df_std_1$Attrition)
+chisq.test(df_std_1$RelationshipSatisfaction, df_std_1$Attrition)
+chisq.test(df_std_1$StockOptionLevel, df_std_1$Attrition)
+chisq.test(df_std_1$WorkLifeBalance, df_std_1$Attrition)
+
+# 
+# 
+# df_std_1$MonthlyIncome = as.numeric(df_std_1$MonthlyIncome)
+# df_std_1$JobSatisfaction = as.numeric(df_std_1$JobSatisfaction)
+# 
+# df_std_2 = select(df_std_1,Attrition,JobSatisfaction)
+# test_data = mwmote(df_std_2, numInstances = 5,classAttr = "Attrition")
+
+```
+
+```{r OverSampling}
+df_std_1$MonthlyIncome = as.numeric(df_std_1$MonthlyIncome)
+df_std_1$DistanceFromHome = as.numeric(df_std_1$DistanceFromHome)
+df_std_1$YearsInCurrentRole = as.numeric(df_std_1$YearsInCurrentRole)
+df_std_1$YearsAtCompany = as.numeric(df_std_1$YearsAtCompany)
+
+df_std_2 = select(df_std_1,MonthlyIncome,DistanceFromHome,Attrition)
+df_std_smote = SMOTE(df_std_2[,-3],df_std_2$Attrition,K = 5)$data
+colnames(df_std_smote)[3] = "Attrition"
+
+
+df_std_3 = select(df_std_1,MonthlyIncome,YearsAtCompany,Attrition)
+df_std_3$MonthlyIncome = df_std_3$MonthlyIncome/1000
+
+df_std_4 = select(df_std_1,MonthlyIncome,YearsAtCompany,Attrition)
+df_std_4$MonthlyIncome = df_std_4$MonthlyIncome
+
+#df_std_3$YearsAtCompany= scale(df_std_3$YearsAtCompany)
+
+df_std_smote_2 = SMOTE(df_std_3[,-3],df_std_3$Attrition,K = 7,)$data
+colnames(df_std_smote_2)[3] = "Attrition"
+
+
+df_std_3 %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+df_std_3 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+
+
+
+df_std_smote_2 = SMOTE(df_std_3[,-3],df_std_3$Attrition,K = 15)$data
+colnames(df_std_smote_2)[3] = "Attrition"
+df_std_smote_2 %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+
+
+df_std_smote_3 = SMOTE(df_std_4[,-3],df_std_4$Attrition,K = 15)$data
+colnames(df_std_smote_3)[3] = "Attrition"
+
+
+
+df_std_smote_2 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+
+
+
+#Before
+
+df_std_3 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+  ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Initial Data")
+
+#No scale
+df_std_smote_3 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+  ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Not scaled")
+
+#Scaled
+df_std_smote_2 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+  ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Scaled")
+
+
+
+
+
+
+```
+
+
+
+```{r Knn}
+
+
+
+#set.seed(7)
+
+
+df_data_model_0 = select(df_std_1,JobSatisfaction,EnvironmentSatisfaction,StockOptionLevel,DistanceFromHome,EmployeeNumber,MonthlyIncome,Gender,Education,Attrition)
+
+df_data_model_0 = select(df_std_1,MonthlyIncome,DistanceFromHome,Attrition)
+df_data_model_0 = df_std_smote
+
+nr_percentage = 75
+nr_len = nrow(df_data_model_0)
+
+df_samples = sample(1:nr_len,round(nr_len*(nr_percentage/100)))
+df_lst_train = df_data_model_0[df_samples,]
+df_lst_test = df_data_model_0[-df_samples,]
+
+
+knn_results = knn(df_lst_train[,c(1,2)], df_lst_test[,c(1,2)], df_lst_train$Attrition, k = 10, prob = TRUE)
+table_result = table(knn_results,df_lst_test$Attrition)
+confusionMatrix(table_result)
+
+# knn_results = knn.cv(df_data_model_0[,c(1,7)], df_data_model_0$Attrition, k = 5, prob = TRUE)
+# table_result = table(knn_results,df_data_model_0$Attrition)
+# confusionMatrix(table_result)
+
+```
+
+```{r NaiveBayes}
+
+df_data_model_0 = select(df_std_1,JobSatisfaction,EnvironmentSatisfaction,StockOptionLevel,DistanceFromHome,EmployeeNumber,MonthlyIncome,Gender,Education,Attrition)
+
+df_data_model_0 = select(df_std_1,MonthlyIncome,DistanceFromHome,Attrition)
+
+df_data_model_0 = df_std_smote
+
+nr_percentage = 75
+nr_len = nrow(df_data_model_0)
+
+df_samples = sample(1:nr_len,round(nr_len*(nr_percentage/100)))
+df_lst_train = df_data_model_0[df_samples,]
+df_lst_test = df_data_model_0[-df_samples,]
+
+model_nb = naiveBayes(df_lst_train[,c(1,2)],df_lst_train$Attrition)
+predict_nb = predict(model_nb,df_lst_test[,c(1,2)])
+result_table = table(predict_nb,df_lst_test$Attrition)
+confusionMatrix(result_table)
+
+
+
+#table(df_lst_train$Education,df_lst_train$Attrition)
+
+```
+

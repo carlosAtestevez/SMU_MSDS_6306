@@ -1,0 +1,580 @@
+---
+title: "Data Ana 1"
+author: "Carlos Estevez"
+date: "2023-03-31"
+editor_options: 
+  chunk_output_type: console
+output: html_document
+---
+
+# Data Analysis
+
+```{r LoadingLibraries}
+
+library(tidyverse)
+library(stringr)
+library(caret)
+library(e1071)
+library(class)
+library(RCurl) 
+library(aws.s3)
+library(smotefamily)
+library(GGally)
+
+
+```
+
+
+## Reading data
+```{r}
+
+
+df_std_1 = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_14_15\\CaseStudy2-data.csv",header = TRUE)
+
+
+```
+
+
+```{r ConnectingAmazonS3}
+
+
+Sys.setenv("AWS_ACCESS_KEY_ID" = "AKIA5HRB7XJNIOKHMHYK",
+           "AWS_SECRET_ACCESS_KEY" = "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",
+           "AWS_DEFAULT_REGION"="us-east-2")
+
+obj <- get_object("CaseStudy2-data.csv", bucket = "ddsproject1")
+df_std_1=read.csv(text = rawToChar(obj), sep=",", header = TRUE)
+
+```
+
+
+
+```{r TransformingData}
+
+
+oversampling = function(p_df_data){
+  vlnr_len_0 = nrow(p_df_data)
+  
+  df_nos = filter(p_df_data,Attrition == "No")
+  df_yeses = filter(p_df_data,Attrition == "Yes")
+  vlnr_len_no = nrow(df_nos) 
+  vlnr_len_yeses = nrow(df_yeses)
+  
+  vlnr_balance = vlnr_len_no - vlnr_len_yeses
+  df_add_yeses = df_yeses[sample(seq(1,vlnr_len_yeses,1),vlnr_balance,replace = TRUE),]
+  df_new_yeses = rbind(df_yeses,df_add_yeses)
+  df_final = rbind(df_new_yeses,df_nos)
+  
+  return(df_final)
+  
+}
+
+
+
+
+#Categorical variables to Factor
+df_std_1$BusinessTravel = factor(df_std_1$BusinessTravel)
+df_std_1$Attrition = factor(df_std_1$Attrition)
+df_std_1$Department = factor(df_std_1$Department)
+df_std_1$Education = factor(df_std_1$Education)
+df_std_1$EducationField = factor(df_std_1$EducationField)
+df_std_1$EnvironmentSatisfaction = factor(df_std_1$EnvironmentSatisfaction)
+df_std_1$Gender = factor(df_std_1$Gender)
+df_std_1$JobLevel = factor(df_std_1$JobLevel)
+df_std_1$JobRole = factor(df_std_1$JobRole)
+df_std_1$JobInvolvement = factor(df_std_1$JobInvolvement)
+df_std_1$JobSatisfaction = factor(df_std_1$JobSatisfaction)
+df_std_1$MaritalStatus = factor(df_std_1$MaritalStatus)
+df_std_1$OverTime = factor(df_std_1$OverTime)
+df_std_1$RelationshipSatisfaction = factor(df_std_1$RelationshipSatisfaction)
+df_std_1$Over18 = factor(df_std_1$Over18)
+df_std_1$StockOptionLevel = factor(df_std_1$StockOptionLevel)
+
+
+df_std_1$JobSatisfactionN = factor(df_std_1$JobSatisfaction)
+df_std_1$EnvironmentSatisfactionN = factor(df_std_1$EnvironmentSatisfaction)
+df_std_1$OverTimeN = as.numeric(df_std_1$OverTime)
+df_std_1$MaritalStatusN = as.numeric(df_std_1$MaritalStatus)
+df_std_1$JobRoleN = as.numeric(df_std_1$JobRole)
+df_std_1$JobLevelN = as.numeric(df_std_1$JobLevel)
+df_std_1$GendeN = as.numeric(df_std_1$Gender)
+df_std_1$BusinessTravelN = as.numeric(df_std_1$BusinessTravel)
+df_std_1$AttritionN = as.numeric(df_std_1$Attrition)
+df_std_1$StockOptionLevelN = as.numeric(df_std_1$StockOptionLevel)
+df_std_1$JobInvolvementN = as.numeric(df_std_1$JobSatisfactionN)
+
+#Continuous variables
+df_std_1$MonthlyIncome = as.numeric(df_std_1$MonthlyIncome)
+df_std_1$DistanceFromHome = as.numeric(df_std_1$DistanceFromHome)
+df_std_1$YearsInCurrentRole = as.numeric(df_std_1$YearsInCurrentRole)
+df_std_1$YearsAtCompany = as.numeric(df_std_1$YearsAtCompany)
+df_std_1$YearsWithCurrManager = as.numeric(df_std_1$YearsWithCurrManager)
+df_std_1$EmployeeNumber = as.numeric(df_std_1$EmployeeNumber)
+df_std_1$TotalWorkingYears = as.numeric(df_std_1$TotalWorkingYears)
+df_std_1$Age = as.numeric(df_std_1$Age)
+
+
+# # #Performing oversampling
+# df_std_os = select(df_std_1,Attrition,MonthlyIncome,YearsAtCompany,OverTimeN,TotalWorkingYears,YearsAtCompany,StockOptionLevel)
+# df_std_os$MonthlyIncome = df_std_os$MonthlyIncome / 1000
+# 
+# 
+# df_std_smote_result = SMOTE(df_std_os[,c(2:6)],df_std_os$Attrition,K = 15)
+# df_std_smote_0 = df_std_smote_result$data
+# df_std_smote_sync = df_std_smote_result$syn_data
+# #colnames(df_std_smote_0)[5] = "Attrition"
+
+
+df_std_unp = oversampling(df_std_1)
+df_std_unp$MonthlyIncome = scale(df_std_unp$MonthlyIncome) #/ 100
+  df_data_model_0 = select(df_std_unp,Attrition,MonthlyIncome,YearsAtCompany,OverTimeN,JobLevelN,JobSatisfactionN,MaritalStatusN)
+#df_data_model_0 = select(df_std_unp,Attrition,MonthlyIncome,YearsAtCompany,OverTimeN,StockOptionLevelN,JobInvolvementN,JobLevelN)
+
+
+nr_percentage = 75
+nr_len = nrow(df_data_model_0)
+nr_len = nrow(df_data_model_0)
+df_samples = sample(1:nr_len,round(nr_len*(nr_percentage/100)))
+df_lst_train = df_data_model_0[df_samples,]
+df_lst_test = df_data_model_0[-df_samples,]
+
+lst_ki_index = 90
+lst_knn_data = data.frame(k=numeric(lst_ki_index) ,accuracy=numeric(lst_ki_index) )
+
+for(ki in 1:lst_ki_index){
+  knn_results = knn(df_lst_train[,c(2:6)], df_lst_test[,c(2:6)], df_lst_train$Attrition, k = ki, prob = TRUE)
+  #knn_results = knn(df_lst_train[,c(2:6)], df_lst_test[,c(2:6)], df_lst_train$Attrition, k = ki, prob = TRUE)
+  
+  table_result = table(knn_results,df_lst_test$Attrition)
+  co_matrix  = confusionMatrix(table_result)
+  lst_knn_data$k[ki] = ki
+  lst_knn_data$accuracy[ki] = round(co_matrix$overall[1] * 100,2)
+}
+
+df_std_1 %>% ggplot(aes(x=Attrition,fill=JobRole))+geom_bar()
+table(df_std_1$JobRole,df_std_1$Attrition)
+
+table(df_std_1$JobInvolvement,df_std_1$Attrition)
+table(df_std_1$JobLevel,df_std_1$Attrition)
+
+
+
+# knn_results = knn.cv(df_data_model_0[,c(2:4)],df_data_model_0$Attrition, k = 20, prob = TRUE)
+# table_result = table(knn_results,df_data_model_0$Attrition)
+# confusionMatrix(table_result)
+# 
+# 
+# 
+# model_nb = naiveBayes(df_lst_train[,c(2:6)],df_lst_train$Attrition)
+# predict_nb = predict(model_nb,df_lst_test[,c(2:6)])
+# result_table = table(predict_nb,df_lst_test$Attrition)
+# confusionMatrix(result_table)
+# 
+
+# #Before
+# 
+# df_std_1 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+#   ggplot(aes(x=MonthlyIncome,y=OverTimeN))+geom_point()+labs(title="Initial Data")
+# 
+#No scale
+# df_std_smote_0 %>% filter(class=="Yes") %>% 
+#   ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Not scaled")
+# 
+# 
+
+
+# newdat = mwmote(df_std_os,numInstances = 700,classAttr = "Attrition")
+# 
+# #No scale
+# newdat %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+#   ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Not scaled")
+
+
+
+#Overtime
+table(df_std_1$OverTime,df_std_1$Attrition) #Yes
+
+#Stock Option Level
+table(df_std_1$StockOptionLevel,df_std_1$Attrition) #Don't like
+
+#Job Role
+table(df_std_1$JobRole,df_std_1$Attrition) #Don't like
+
+#Job Involvement
+table(df_std_1$JobInvolvement,df_std_1$Attrition) #Don't like
+
+#Maritial Status
+table(df_std_1$MaritalStatus,df_std_1$Attrition) #Maybe
+
+#Worklife balance
+table(df_std_1$WorkLifeBalance,df_std_1$Attrition) #Don't like
+
+#Department
+table(df_std_1$Department,df_std_1$Attrition) #Don't like
+
+
+#Env.Satisfaction
+table(df_std_1$EnvironmentSatisfaction,df_std_1$Attrition) #Maybe
+
+
+#Job.Satisfaction
+table(df_std_1$JobSatisfaction,df_std_1$Attrition) #Yes
+
+#Business Travel
+table(df_std_1$BusinessTravel,df_std_1$Attrition) #Don't like
+
+#PerformanceRating
+table(df_std_1$PerformanceRating,df_std_1$Attrition) #Don't like
+
+
+#Education
+table(df_std_1$EducationField,df_std_1$Attrition) #Don't like
+
+#Job Level
+table(df_std_1$JobLevel,df_std_1$Attrition) #Yes
+
+
+#Winners-->Overtime, JobSatisfaction, JobLevel, Maritial Status Maybe
+
+```
+
+
+
+```{r DataExploration}
+
+
+#Exploring 
+df_std_1 %>% ggplot(aes(x=Attrition,fill=Attrition))+geom_bar()
+df_perc_1 = df_std_1 %>% count(Attrition) %>% mutate(perc=(n/(nrow(df_std_1)))*1)
+df_perc_1 %>% ggplot(aes(x=Attrition,y=perc,fill=Attrition))+geom_bar(stat="identity")+
+  labs(title="Attrution Exploration",y="Percentage(%)",x="Decision")+scale_y_continuous(labels=scales::percent) 
+
+
+#Plotting continous variables
+
+#MonthlyIncome --> Yes
+df_std_1 %>% ggplot(aes(x=MonthlyIncome))+geom_histogram(aes(fill=Attrition))+labs(title="Monthly income distribution",y="Count",x="Monthly Income")
+df_std_1 %>% ggplot(aes(x=Attrition,y=MonthlyIncome))+geom_boxplot(aes(fill=Attrition))+
+  labs(title="Monthly income distribution",y="Count",x="Monthly Income")
+
+#YearsAtCompany --> Yes
+df_std_1 %>% ggplot(aes(x=YearsAtCompany))+geom_histogram(aes(fill=Attrition))+
+  labs(title="Distribution of Years at the company",y="Number of employees",x="Years at the company")
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsAtCompany))+geom_boxplot()+
+  labs(title="Distribution of Years at the company",y="Number of employees",x="Years at the company")
+
+#YearsInCurrentRole --> Maybe
+df_std_1 %>% ggplot(aes(x=YearsInCurrentRole))+geom_histogram(aes(fill=Attrition))
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsInCurrentRole))+geom_boxplot()
+
+#YearsWithCurrManager --> Maybe
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsWithCurrManager))+geom_bar(aes(fill=Attrition),stat = "identity")
+df_std_1 %>% ggplot(aes(x=YearsWithCurrManager))+geom_histogram(aes(fill=Attrition))
+df_std_1 %>% ggplot(aes(x=Attrition,y=YearsWithCurrManager))+geom_boxplot()
+
+
+#Ploting categorical variables
+
+#Overtime -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=OverTime))+geom_bar()
+table(df_std_1$OverTime,df_std_1$Attrition)
+
+
+#Job Role -->No
+df_std_1 %>% ggplot(aes(x=Attrition,fill=JobRole))+geom_bar()
+table(df_std_1$JobRole,df_std_1$Attrition)
+
+
+#Business Travel -->No
+df_std_1 %>% ggplot(aes(x=Attrition,fill=BusinessTravel))+geom_bar()
+table(df_std_1$BusinessTravel,df_std_1$Attrition)
+
+#Department -->No
+df_std_1 %>% ggplot(aes(x=Attrition,fill=Department))+geom_bar()
+table(df_std_1$Department,df_std_1$Attrition)
+
+#Env.Satisfaction -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=EnvironmentSatisfaction))+geom_bar()
+table(df_std_1$EnvironmentSatisfaction,df_std_1$Attrition)
+
+#Job Staisfaction -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=JobSatisfaction))+geom_bar()
+table(df_std_1$JobSatisfaction,df_std_1$Attrition)
+
+#Job Inv -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=JobInvolvement))+geom_bar()
+table(df_std_1$JobInvolvement,df_std_1$Attrition)
+
+#Maritial Status -->Yes
+df_std_1 %>% ggplot(aes(x=Attrition,fill=MaritalStatus))+geom_bar()
+table(df_std_1$MaritalStatus,df_std_1$Attrition)
+
+
+
+
+df_std_1 %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+df_std_1 %>% select(MonthlyIncome,DistanceFromHome,Attrition) %>% ggpairs(aes(color=Attrition))
+
+```
+
+
+
+
+# Chi-Square Test
+## To decide which categorical variables should be kept in the attrition model, Chi-Square will be used to test whether there is a relationship between the categorical variables and attrition. The null hypothesis for this test is the two variables are independent, and the alternative hypothesis is the variables are not independent. In order to reject the null hypothesis and keep variables in the model, the p-value of this test must have a p-value below .05.
+```{r DeterminingVariableImportance}
+
+
+df_var_cat_imp = data.frame(var_name = character(16),importance = numeric(16))
+
+df_var_cat_imp$var_name[1] = 'BusinessTravel'
+df_var_cat_imp$importance[1] = chisq.test(df_std_1$BusinessTravel, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[2] = 'Department'
+df_var_cat_imp$importance[2] = chisq.test(df_std_1$Department, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[3] = 'Education'
+df_var_cat_imp$importance[3] = chisq.test(df_std_1$Education, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[4] = 'EducationField'
+df_var_cat_imp$importance[4] = chisq.test(df_std_1$EducationField, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[5] = 'EnvironmentSatisfaction'
+df_var_cat_imp$importance[5] = chisq.test(df_std_1$EnvironmentSatisfaction, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[6] = 'Gender' 
+df_var_cat_imp$importance[6] = chisq.test(df_std_1$Gender, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[7] = 'JobInvolvement'
+df_var_cat_imp$importance[7] = chisq.test(df_std_1$JobInvolvement, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[8] = 'JobLevel'
+df_var_cat_imp$importance[8] = chisq.test(df_std_1$JobLevel, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[9] = 'JobRole'
+df_var_cat_imp$importance[9] = chisq.test(df_std_1$JobRole, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[10] = 'JobSatisfaction'
+df_var_cat_imp$importance[10] = chisq.test(df_std_1$JobSatisfaction, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[11] = 'MaritalStatus'
+df_var_cat_imp$importance[11] = chisq.test(df_std_1$MaritalStatus, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[12] = 'PerformanceRating'
+df_var_cat_imp$importance[12] = chisq.test(df_std_1$PerformanceRating, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[13] = 'OverTime'
+df_var_cat_imp$importance[13] = chisq.test(df_std_1$OverTime, df_std_1$Attrition)$p.value
+
+
+df_var_cat_imp$var_name[14] = 'RelationshipSatisfaction'
+df_var_cat_imp$importance[14] = chisq.test(df_std_1$RelationshipSatisfaction, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[15] = 'StockOptionLevel'
+df_var_cat_imp$importance[15] = chisq.test(df_std_1$StockOptionLevel, df_std_1$Attrition)$p.value
+
+df_var_cat_imp$var_name[16] = 'WorkLifeBalance'
+df_var_cat_imp$importance[16] = chisq.test(df_std_1$WorkLifeBalance, df_std_1$Attrition)$p.value
+
+
+df_var_cat_imp  = arrange(df_var_cat_imp, desc(importance))
+
+# 
+# 
+# df_std_1$MonthlyIncome = as.numeric(df_std_1$MonthlyIncome)
+# df_std_1$JobSatisfaction = as.numeric(df_std_1$JobSatisfaction)
+# 
+# df_std_2 = select(df_std_1,Attrition,JobSatisfaction)
+# test_data = mwmote(df_std_2, numInstances = 5,classAttr = "Attrition")
+
+```
+
+```{r OverSampling}
+
+
+df_std_2 = select(df_std_1,MonthlyIncome,DistanceFromHome,Attrition)
+df_std_smote = SMOTE(df_std_2[,-3],df_std_2$Attrition,K = 5)$data
+colnames(df_std_smote)[3] = "Attrition"
+
+
+df_std_3 = select(df_std_1,MonthlyIncome,YearsAtCompany,Attrition)
+df_std_3$MonthlyIncome = df_std_3$MonthlyIncome/1000
+
+df_std_4 = select(df_std_1,MonthlyIncome,YearsAtCompany,Attrition)
+df_std_4$MonthlyIncome = df_std_4$MonthlyIncome
+
+#df_std_3$YearsAtCompany= scale(df_std_3$YearsAtCompany)
+
+df_std_smote_2 = SMOTE(df_std_3[,-3],df_std_3$Attrition,K = 7,)$data
+colnames(df_std_smote_2)[3] = "Attrition"
+
+
+df_std_3 %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+df_std_3 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+
+
+
+df_std_smote_2 = SMOTE(df_std_3[,-3],df_std_3$Attrition,K = 15)$data
+colnames(df_std_smote_2)[3] = "Attrition"
+df_std_smote_2 %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+
+
+df_std_smote_3 = SMOTE(df_std_4[,-3],df_std_4$Attrition,K = 15)$data
+colnames(df_std_smote_3)[3] = "Attrition"
+
+
+
+df_std_smote_2 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>% ggpairs(aes(color=Attrition))
+
+
+
+#Before
+
+df_std_3 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+  ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Initial Data")
+
+#No scale
+df_std_smote_3 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+  ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Not scaled")
+
+#Scaled
+df_std_smote_2 %>% filter(Attrition=="Yes") %>% select(MonthlyIncome,YearsAtCompany,Attrition) %>%
+  ggplot(aes(x=MonthlyIncome,y=YearsAtCompany))+geom_point()+labs(title="Scaled")
+
+
+
+
+
+
+```
+
+
+
+```{r Knn}
+
+
+
+#set.seed(7)
+
+
+df_data_model_0 = select(df_std_1,JobSatisfaction,EnvironmentSatisfaction,StockOptionLevel,DistanceFromHome,EmployeeNumber,MonthlyIncome,Gender,Education,Attrition)
+
+df_data_model_0 = select(df_std_1,MonthlyIncome,DistanceFromHome,Attrition)
+df_data_model_0 = df_std_smote_0
+
+nr_percentage = 75
+nr_len = nrow(df_data_model_0)
+
+df_samples = sample(1:nr_len,round(nr_len*(nr_percentage/100)))
+df_lst_train = df_data_model_0[df_samples,]
+df_lst_test = df_data_model_0[-df_samples,]
+
+
+knn_results = knn(df_lst_train[,c(1,2)], df_lst_test[,c(1,2)], df_lst_train$Attrition, k = 10, prob = TRUE)
+table_result = table(knn_results,df_lst_test$Attrition)
+confusionMatrix(table_result)
+
+# knn_results = knn.cv(df_data_model_0[,c(1,7)], df_data_model_0$Attrition, k = 5, prob = TRUE)
+# table_result = table(knn_results,df_data_model_0$Attrition)
+# confusionMatrix(table_result)
+
+
+
+nr_percentage = 75
+nr_len = nrow(df_data_model_0)
+df_data_model_0 = df_std_smote_0
+nr_len = nrow(df_data_model_0)
+df_samples = sample(1:nr_len,round(nr_len*(nr_percentage/100)))
+df_lst_train = df_data_model_0[df_samples,]
+df_lst_test = df_data_model_0[-df_samples,]
+
+knn_results = knn(df_lst_train[,c(1,2,3,4)], df_lst_test[,c(1,2,3,4)], df_lst_train$Attrition, k = 15, prob = TRUE)
+table_result = table(knn_results,df_lst_test$Attrition)
+confusionMatrix(table_result)
+
+
+
+
+
+```
+
+```{r NaiveBayes}
+
+df_data_model_0 = select(df_std_1,JobSatisfaction,EnvironmentSatisfaction,StockOptionLevel,DistanceFromHome,EmployeeNumber,MonthlyIncome,Gender,Education,Attrition)
+
+df_data_model_0 = select(df_std_1,MonthlyIncome,DistanceFromHome,Attrition)
+
+df_data_model_0 = df_std_smote
+
+nr_percentage = 75
+nr_len = nrow(df_data_model_0)
+
+df_samples = sample(1:nr_len,round(nr_len*(nr_percentage/100)))
+df_lst_train = df_data_model_0[df_samples,]
+df_lst_test = df_data_model_0[-df_samples,]
+
+model_nb = naiveBayes(df_lst_train[,c(1,2)],df_lst_train$Attrition)
+predict_nb = predict(model_nb,df_lst_test[,c(1,2)])
+result_table = table(predict_nb,df_lst_test$Attrition)
+confusionMatrix(result_table)
+
+
+
+#table(df_lst_train$Education,df_lst_train$Attrition)
+
+```
+
+
+```{r RegressionLinealModel}
+
+
+#df_std_1 %>% select(JobLevelN,MonthlyIncome) %>% ggpairs()
+
+nr_att = nrow(df_std_1) 
+#Creating training data and testing data for both models
+nr_per = 0.75
+lst_index = sample(nr_att,round(nr_att*nr_per))
+
+
+df_std_train_m1 = df_std_1[lst_index,]
+df_std_test_m1 = df_std_1[-lst_index,]
+
+lm_model_0 = lm(MonthlyIncome~JobLevelN+YearsAtCompany+TotalWorkingYears,data = df_std_train_m1)
+lm_model_pre_0 = predict(lm_model_0,newdata = df_std_test_m1)
+df_mspe_model_0 = data.frame(JobLevelN = df_std_test_m1$JobLevelN,Observed = df_std_test_m1$MonthlyIncome,Predicted = lm_model_pre_0)
+df_mspe_model_0$Residual = df_mspe_model_0$Observed - df_mspe_model_0$Predicted
+df_mspe_model_0$IMAPE = abs( df_mspe_model_0$Residual / df_mspe_model_0$Observed )
+df_mspe_model_0$SquareResidual = df_mspe_model_0$Residual^2
+nr_mspe_model_0 = mean(df_mspe_model_0$SquareResidual)
+nr_mspe_model_1 = mean(df_mspe_model_0$IMAPE) * 100
+nr_mspe_model_1
+
+
+# ggplot()+geom_point(data = df_std_1,mapping = aes(x=JobLevelN,y=MonthlyIncome))+geom_jitter()+
+#   geom_point(data = df_mspe_model_0,mapping = aes(x=JobLevelN,y=Predicted),color="green")
+
+
+df_mspe_model_0 %>% ggplot()+geom_jitter(aes(x=JobLevelN,y=Observed),color="darkgreen")+
+  geom_jitter(aes(x=JobLevelN,y=Predicted),color="darkred")+labs("Monthly Prediction",x="JobLevel+YearsAtCompany+WorkingYears",y="Monthly Income($)")
+
+
+
+data_cor = select(df_std_1,MonthlyIncome,JobLevelN,JobRoleN,YearsAtCompany,GendeN,TotalWorkingYears,BusinessTravelN,AttritionN)
+data_cor_res = cor(data_cor)
+
+
+table(df_std_1$Gender)
+
+
+
+```
+
+
+```{r}
+
+df_std_1
+
+
+```
+
+

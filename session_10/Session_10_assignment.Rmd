@@ -1,0 +1,239 @@
+---
+title: "Session 10 Assignment"
+author: "Carlos Estevez"
+date: "2023-03-06"
+output: html_document
+---
+
+## Activity 1:Loading libraries
+```{r LoadingLibs}
+
+library(tidyverse)
+library(stringr)
+library(GGally)
+library(plotly)
+
+```
+
+
+## Activity 1:Reading data
+```{r ReadingData}
+
+
+df_cars_0 = read.csv("C:\\Users\\cestevez\\Dropbox\\Cloud PC\\Thinkpad\\Thinkpad Desktop\\Master Data Science SMU\\Class_Sessions\\Data Science Sessions\\Repository\\SMU_MSDS_6306\\session_10\\cars.csv")
+#df_cars_0 = df_cars_0 %>% mutate(Weight = Weight/1000)
+nr_dim_cars = dim(df_cars_0)[1]
+
+
+
+
+```
+
+## Activity 1: Hypothesis Test
+```{r HypTest}
+
+
+#Fitting the model
+fit = lm(MPG~Weight,df_cars_0)
+fit_sum = summary(fit)
+conf_int = confint(fit)
+
+#Summary of the fitting model and confident intervals
+fit_sum 
+conf_int
+
+#Hypothesis tesing
+#Step 1: Ho: B1 = 0, Ha: B1 ne 0
+#Step 2 and 3: Significant level = 0.05(confint(object, parm, level=0.95)) Default parameter 0.95 and DF = n -2 
+nr_df = nr_dim_cars - 2
+nr_beta_1_hat =  fit_sum$coefficients[2,1]
+nr_se_beta_1_hat = fit_sum$coefficients[2,2]
+#Step 3: Finding tvalue b1_hat / SE(b1_hat), b1 = 0 because we are proving B1 ne 0
+nr_tstat = nr_beta_1_hat / nr_se_beta_1_hat
+
+#Step 4: Finding P-Value
+nr_pvalue = (pt(q=nr_tstat,df = nr_df)) * 2 # Mult by 2 since 2 sided test
+
+# nr_tstat
+# nr_pvalue
+
+#Step 5: We Reject Ho
+
+#Step 6: Conclusion: since p_value is less than 0.05 We reject H0
+#and besides the error is too small, if we take a look at the scatter plot 
+#We can notice the strong linear relationship between weight and MPG
+
+
+
+
+
+
+
+```
+
+
+
+
+## Activity 2:Training and running model
+```{r TrainAndRun}
+
+
+
+
+#Creating training data and testing data for both models
+nr_per = 0.75
+lst_index = sample(nr_dim_cars,round(nr_dim_cars*nr_per))
+df_cars_1 = mutate(df_cars_0,Weight_Power=Weight^2)
+
+df_cars_train_m1 = df_cars_0[lst_index,]
+df_cars_test_m1 = df_cars_0[-lst_index,]
+
+df_cars_train_m2 = df_cars_1[lst_index,]
+df_cars_test_m2 = df_cars_1[-lst_index,]
+
+
+#Model 1 mpg= B0+B1*Weight+E
+fit_model_1 = lm(MPG~Weight,df_cars_train_m1)
+pre_model_1 = predict(fit_model_1,newdata = df_cars_test_m1)
+df_mspe_model_1 = data.frame(Observed = df_cars_test_m1$MPG,Predicted = pre_model_1)
+df_mspe_model_1$Residual = df_mspe_model_1$Observed - df_mspe_model_1$Predicted
+df_mspe_model_1$SquareResidual = df_mspe_model_1$Residual^2
+nr_mspe_model_1 = mean(df_mspe_model_1$SquareResidual)
+nr_mspe_model_1
+
+#Model 2 mpg= B0+B1*Weight+B1*Weight^2+E
+
+fit_model_2 = lm(MPG~Weight+Weight_Power,df_cars_train_m2)
+pre_model_2 = predict(fit_model_2,newdata = df_cars_test_m2)
+df_mspe_model_2 = data.frame(Observed = df_cars_test_m2$MPG,Predicted = pre_model_2)
+df_mspe_model_2$Residual = df_mspe_model_2$Observed - df_mspe_model_2$Predicted
+df_mspe_model_2$SquareResidual = df_mspe_model_2$Residual^2
+nr_mspe_model_2 = mean(df_mspe_model_2$SquareResidual)
+nr_mspe_model_2
+
+df_new_m1 = data.frame(Weight = df_cars_test_m1$Weight,MPG_OBS = df_mspe_model_1$Observed, MPG_PRE = df_mspe_model_1$Predicted )
+df_new_m2 = data.frame(Weight = df_cars_test_m2$Weight,MPG_OBS = df_mspe_model_2$Observed, MPG_PRE = df_mspe_model_2$Predicted )
+
+
+df_cars_0 %>% ggplot()+geom_point(aes(x=Weight,y=MPG))+geom_smooth(aes(x=Weight,y=MPG),method = "lm")+labs(title="MPG vs Weight",x="Weight(lbs)",y="MPG(Miles per Galon)")
+
+df_new_m1 %>% ggplot()+geom_point(aes(x=Weight,y=MPG_OBS),color="green")+geom_smooth(aes(x=Weight,y=MPG_PRE),color="blue")+
+  labs(title="MPG vs Weight",subtitle = "Model 1: MPG= B0+B1*Weight",x="Weight(lbs)",y="MPG(Miles per Galon)")
+
+df_new_m2 %>% ggplot()+geom_point(aes(x=Weight,y=MPG_OBS),color="green")+geom_smooth(aes(x=Weight,y=MPG_PRE),color="blue")+
+  labs(title="MPG vs Weight",subtitle = "Model 2: MPG= B0+B1*Weight+B2*Weight^2+E",x="Weight(lbs)",y="MPG(Miles per Galon)")
+
+
+```
+
+## Activity 2: Training the model using more samples
+```{r}
+
+nr_per = 0.75
+nr_samples = 1000
+
+#Data for model 2
+df_cars_1 = mutate(df_cars_0,Weight_Power=Weight^2)
+
+#Dataframe results
+df_res_mspe_model_1 = data.frame(mspe=numeric(nr_samples))
+df_res_mspe_model_2 = data.frame(mspe=numeric(nr_samples))
+
+for(i in 1:nr_samples){
+
+lst_index = sample(nr_dim_cars,round(nr_dim_cars*nr_per))
+df_cars_train_m1 = df_cars_0[lst_index,]
+df_cars_test_m1 = df_cars_0[-lst_index,]
+
+df_cars_train_m2 = df_cars_1[lst_index,]
+df_cars_test_m2 = df_cars_1[-lst_index,]
+
+#Model 1 mpg= B0+B1*Weight+E
+fit_model_1 = lm(MPG~Weight,df_cars_train_m1)
+pre_model_1 = predict(fit_model_1,newdata = df_cars_test_m1)
+df_mspe_model_1 = data.frame(Observed = df_cars_test_m1$MPG,Predicted = pre_model_1)
+df_mspe_model_1$Residual = df_mspe_model_1$Observed - df_mspe_model_1$Predicted
+df_mspe_model_1$SquareResidual = df_mspe_model_1$Residual^2
+nr_mspe_model_1 = mean(df_mspe_model_1$SquareResidual)
+df_res_mspe_model_1$mspe[i] = nr_mspe_model_1
+
+#Model 2 mpg= B0+B1*Weight+B1*Weight^2+E
+fit_model_2 = lm(MPG~Weight+Weight_Power,df_cars_train_m2)
+pre_model_2 = predict(fit_model_2,newdata = df_cars_test_m2)
+df_mspe_model_2 = data.frame(Observed = df_cars_test_m2$MPG,Predicted = pre_model_2)
+df_mspe_model_2$Residual = df_mspe_model_2$Observed - df_mspe_model_2$Predicted
+df_mspe_model_2$SquareResidual = df_mspe_model_2$Residual^2
+nr_mspe_model_2 = mean(df_mspe_model_2$SquareResidual)
+df_res_mspe_model_2$mspe[i] = nr_mspe_model_2
+  
+  
+}
+sprintf("MSPE Model 1: %f",mean(df_res_mspe_model_1$mspe))
+sprintf("MSPE Model 2: %f",mean(df_res_mspe_model_2$mspe))
+
+
+df_res_mspe_model_1 %>% ggplot(aes(x=mspe))+geom_histogram(fill="blue")+labs(title="MSPE Model 1")
+df_res_mspe_model_2 %>% ggplot(aes(x=mspe))+geom_histogram(fill="green")+labs(title="MSPE Model 1")
+
+
+#Predicting using model 1
+
+
+nr_weight = 2000
+df_car_2klbs_m1 = data.frame(Weight=nr_weight)
+pre_model_1 = predict(fit_model_1,newdata = df_car_2klbs_m1)
+pre_model_1
+
+
+#Predicting using model 2
+
+df_car_2klbs_m2 = data.frame(Weight=nr_weight,Weight_Power = nr_weight^2)
+pre_model_2 = predict(fit_model_2,newdata = df_car_2klbs_m2)
+sprintf("Prediction car that weighs pre_model_2 2000 lbs: %f",pre_model_2)
+
+
+
+
+```
+
+## Activity 3: Imputation
+```{r ImputationModel}
+
+
+fit_model_3 = lm(Horsepower~Displacement,df_cars_0)
+summary(fit_model_3)
+
+#We need to predict these values
+df_cars_mval_hp = filter(df_cars_0,is.na(Horsepower))
+nr_mval = nrow(df_cars_mval_hp)
+nr_cars = nrow(df_cars_0)
+df_pre_model_3 = predict(fit_model_3,newdata = df_cars_mval_hp)
+df_pre_model_3
+
+
+#DataFrame Unpolluted
+df_cars_unp_1 = df_cars_0
+df_cars_unp_1[is.na(df_cars_unp_1$Horsepower),]$Horsepower =  df_pre_model_3 
+
+df_cars_0 %>% ggplot(aes(x=Displacement,y=Horsepower))+geom_point()+geom_smooth(method = "lm")+labs(title="Horsepower vs Displacement",subtitle = "Before Missing values replecement",x="Displacement(cm3)",y="Horsepower(hp)")
+
+df_cars_unp_1 %>% ggplot(aes(x=Displacement,y=Horsepower))+geom_point()+geom_smooth(method = "lm")+labs(title="Horsepower vs Displacement",subtitle = "After Missing values replecement",x="Displacement(cm3)",y="Horsepower(hp)")
+
+
+df_cars_unp_1 %>% ggplot(aes(x=Horsepower,y=MPG))+geom_point()+geom_smooth(method = "lm")+labs(title="MPG vs Horsepower",x="Horsepower(hp)",y="MPG")
+
+
+#Creating the model after imputation
+fit_model_4 = lm(MPG~Horsepower,df_cars_unp_1)
+summary(fit_model_4)
+confint(fit_model_4)
+
+
+#Estimation of a car with 250 horsepower
+df_car_est_1 = data.frame(Horsepower=250)
+pre_model_4 = predict(fit_model_4,newdata = df_car_est_1)
+pre_model_4
+
+```
+
+
